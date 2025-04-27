@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTrading } from '../context/TradingContext';
 import type { QueuedOptionTrade, OptionTrade } from '../context/TradingContext';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL!;
+
 
 type Holding = {
   symbol: string;
@@ -82,7 +84,7 @@ const { queuedOrders, setQueuedOrders } = useTrading();
       const prices: { [key: string]: number } = {};
       for (const h of holdings) {
         try {
-          const res = await fetch(`http://localhost:5000/api/price?symbol=${h.symbol}`);
+          const res = await fetch(`${API_BASE_URL}/api/price?symbol=${h.symbol}`);
           const data = await res.json();
           prices[h.symbol] = data.price;
         } catch (err) {
@@ -101,7 +103,7 @@ const { queuedOrders, setQueuedOrders } = useTrading();
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/price?symbol=${symbol}`);
+        const res = await fetch(`${API_BASE_URL}/api/price?symbol=${symbol}`);
         const data = await res.json();
         if (data.price) setMarketPrice(data.price);
       } catch (err) {

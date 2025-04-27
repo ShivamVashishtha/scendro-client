@@ -5,6 +5,8 @@ import OptionsProfitChart from '../components/OptionsProfitChart';
 import { useTrading } from '../context/TradingContext';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 export default function OptionsTrading() {
   const [symbol, setSymbol] = useState('');
   const [strike, setStrike] = useState(0);
@@ -44,7 +46,7 @@ export default function OptionsTrading() {
     const cost = price * contracts * 100;
 
     try {
-      const res = await fetch('http://localhost:5000/api/market-status');
+      const res = await fetch(`${API_BASE_URL}/api/market-status`);
       const data = await res.json();
 
       if (!res.ok || typeof data.isMarketOpen !== 'boolean') {
@@ -117,7 +119,6 @@ export default function OptionsTrading() {
           placeholder="Enter symbol (e.g. AAPL)"
         />
 
-        {/* Order Type Buttons moved here under search bar */}
         <div className="mb-4 flex flex-wrap gap-2 justify-start">
           {['MARKET_BUY', 'MARKET_SELL', 'LIMIT_BUY', 'LIMIT_SELL'].map((type) => (
             <button

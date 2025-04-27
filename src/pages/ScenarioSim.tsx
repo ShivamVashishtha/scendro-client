@@ -167,7 +167,7 @@ const getAutoRebalanceSuggestion = (stocks: StockResult[], riskTolerance = 0.5):
 const fetchSentiment = async (symbol: string): Promise<string[]> => {
   const gnewsKey = process.env.REACT_APP_GNEWS_KEY!;
   const fromDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const gnewsRes = await fetch(`https://gnews.io/api/v4/search?q=${symbol}&from=${fromDate}&lang=en&token=${gnewsKey}`);
+  const gnewsRes = await fetch(`https://gnews.io/api/v4/search?q=${symbol}&from=${fromDate}&lang=en&token=${process.env.REACT_APP_GNEWS_API}`);
   const gnewsData = await gnewsRes.json();
   const gnewsTitles = gnewsData.articles?.map((a: any) => a.title) || [];
 
@@ -290,14 +290,14 @@ export default function ScenarioSim() {
     const qtyArray = holdingsTable.map((h) => h.quantity);
 
     const fetchHistory = async (symbol: string): Promise<number[]> => {
-      const res = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${alphaKey}`);
+      const res = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${process.env.REACT_APP_ALPHA_KEY}`);
       const data = await res.json();
       const series = data['Time Series (Daily)'];
       return series ? Object.values(series).slice(0, timeRange).map((e: any) => parseFloat(e['4. close'])).reverse() : [];
     };
 
     const fetchGlobalQuote = async (symbol: string) => {
-      const res = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${alphaKey}`);
+      const res = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${process.env.REACT_APP_ALPHA_KEY}`);
       const data = await res.json();
       const quote = data['Global Quote'];
       return {
@@ -312,13 +312,13 @@ export default function ScenarioSim() {
 
     const fetchSentiment = async (symbol: string): Promise<string[]> => {
       const fromDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const res = await fetch(`https://newsapi.org/v2/everything?q=${symbol}&from=${fromDate}&sortBy=publishedAt&pageSize=5&language=en&apiKey=${newsKey}`);
+      const res = await fetch(`https://newsapi.org/v2/everything?q=${symbol}&from=${fromDate}&sortBy=publishedAt&pageSize=5&language=en&apiKey=${process.env.REACT_APP_NEWS_KEY}`);
       const data = await res.json();
       return data.articles?.map((a: any) => a.title) || [];
     };
 
     const fetchCompanyOverview = async (symbol: string): Promise<{ sector: string; name: string }> => {
-      const res = await fetch(`https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${alphaKey}`);
+      const res = await fetch(`https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${process.env.REACT_APP_ALPHA_KEY}`);
       const data = await res.json();
       return {
         sector: data?.Sector || 'Unknown',

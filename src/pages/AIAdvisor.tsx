@@ -1,8 +1,9 @@
-// Enhanced AI Investment Advisor + Chatbot
 import { useState } from 'react';
 import { FaRobot } from 'react-icons/fa';
 import DOMPurify from 'dompurify';
-import { marked } from 'marked'; // Updated import
+import { marked } from 'marked';
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 export default function InvestmentAdvisor() {
   const [capital, setCapital] = useState('');
@@ -32,7 +33,7 @@ export default function InvestmentAdvisor() {
 
     setLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:5000/recommend', {
+      const res = await fetch(`${API_BASE_URL}/recommend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -71,7 +72,7 @@ export default function InvestmentAdvisor() {
     setChatLoading(true);
 
     try {
-      const res = await fetch('http://127.0.0.1:5000/chat', {
+      const res = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: chatInput })

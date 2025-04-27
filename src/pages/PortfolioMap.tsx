@@ -50,11 +50,11 @@ export default function PortfolioMap() {
 
   const fetchSentiment = async (symbol: string) => {
     try {
-      const quoteRes = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${alphaKey}`);
+      const quoteRes = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${process.env.REACT_APP_ALPHA_KEY}`);
       const quoteData = await quoteRes.json();
       const q = quoteData['Global Quote'];
 
-      const historyRes = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${alphaKey}`);
+      const historyRes = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${process.env.REACT_APP_ALPHA_KEY}`);
       const historyJson = await historyRes.json();
       const historyObj = historyJson['Time Series (Daily)'];
       const history = historyObj ? Object.values(historyObj).slice(0, 10).map((entry: any) => parseFloat(entry['4. close'])).reverse() : [];
@@ -64,7 +64,7 @@ export default function PortfolioMap() {
       lastWeek.setDate(today.getDate() - 3);
       const fromDate = lastWeek.toISOString().split('T')[0];
 
-      const newsRes = await fetch(`https://newsapi.org/v2/everything?q=${symbol}&from=${fromDate}&sortBy=publishedAt&pageSize=5&language=en&apiKey=${newsKey}`);
+      const newsRes = await fetch(`https://newsapi.org/v2/everything?q=${symbol}&from=${fromDate}&sortBy=publishedAt&pageSize=5&language=en&apiKey=${process.env.REACT_APP_NEWS_KEY}`);
       const newsData = await newsRes.json();
       const headlines: string[] = newsData.articles?.slice(0, 5).map((a: any) => a.title) || [];
 
