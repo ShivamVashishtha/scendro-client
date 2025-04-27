@@ -6,16 +6,17 @@ import AIAdvisor from './pages/AIAdvisor';
 import PaperTrading from './pages/PaperTrading';
 import OptionsTrading from './pages/OptionsTrading';
 import { TradingProvider } from './context/TradingContext';
+import Navbar from './components/Navbar';
 
 function App() {
   return (
     <TradingProvider>
       <Router>
+        <Navbar />
         <Routes>
-          <Route path="/" element={<Dashboard />}>
-            <Route path="portfolio" element={<PortfolioMap />} />
-            <Route path="scenario" element={<ScenarioSim />} />
-          </Route>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/portfolio" element={<PortfolioMap />} />
+          <Route path="/scenario" element={<ScenarioSim />} />
           <Route path="/ai-advisor" element={<AIAdvisor />} />
           <Route path="/paper-trading" element={<PaperTrading />} />
           <Route path="/options" element={<OptionsTrading />} />

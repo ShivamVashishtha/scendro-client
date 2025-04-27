@@ -1,19 +1,15 @@
-import { Outlet, Link } from 'react-router-dom';
-
 export default function Dashboard() {
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <nav className="bg-gray-800 px-6 py-4 flex gap-6 text-lg font-medium">
-        <Link to="/portfolio" className="text-white hover:text-blue-400 transition">
-          Portfolio Map
-        </Link>
-        <Link to="/scenario" className="text-white hover:text-blue-400 transition">
-          ScenarioSim
-        </Link>
-      </nav>
-      <main className="p-6">
-        <Outlet />
-      </main>
+    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-6 bg-gray-900 text-white">
+      <h1 className="text-4xl md:text-6xl font-bold mb-6 text-blue-400">
+        Welcome to Scendro
+      </h1>
+      <p className="text-lg md:text-2xl text-gray-400 mb-8">
+        Smarter investing, powered by AI-driven simulations and real-time analytics.
+      </p>
+      <a href="/portfolio" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-lg transition">
+        Explore Portfolio Map
+      </a>
     </div>
   );
 }
