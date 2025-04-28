@@ -2,32 +2,100 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Styles */
+/* --- Custom Styles --- */
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #f9f9f9; /* Light background for readability */
-  color: #333; /* Dark text for better contrast */
+  background-color: #000; /* base black */
+  color: #fff;
+  transition: all 0.5s ease-in-out;
 }
 
-/* Navbar Styling */
+/* --- Radial Background --- */
+.bg-gradient-radial {
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, 
+    #16213e 0%, 
+    #0f3460 40%, 
+    #0b132b 70%, 
+    #000000 100%);
+  background-size: cover;
+  animation: backgroundPulse 8s ease-in-out infinite alternate;
+}
+
+/* Subtle background breathing pulse */
+@keyframes backgroundPulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.05); }
+  100% { filter: brightness(1); }
+}
+
+/* --- Animated Light Beams (Blurry Curtains) --- */
+.light-beam {
+  position: absolute;
+  top: 0;
+  width: 80px;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0)
+  );
+  filter: blur(50px);
+  opacity: 0.15;
+  animation: beamMove 6s ease-in-out infinite alternate,
+             beamFade 5s ease-in-out infinite alternate;
+  transform-origin: center center;
+}
+
+/* Beams Move Sideways */
+@keyframes beamMove {
+  from { transform: translateX(0px); }
+  to { transform: translateX(100px); }
+}
+
+/* Beams Fade In and Out */
+@keyframes beamFade {
+  from { opacity: 0.1; }
+  to { opacity: 0.25; }
+}
+
+/* --- Floating Particle Animation --- */
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.6);
+  animation: float 5s infinite ease-in-out;
+  opacity: 0;
+}
+
+@keyframes float {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  50% { transform: translateY(-20px) scale(1); opacity: 1; }
+  100% { transform: translateY(0) scale(0.5); opacity: 0; }
+}
+
+/* --- Navbar Styling --- */
 .navbar {
-  background-color: #ffffff;
-  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+  background-color: #222;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .navbar a {
-  color: #333;
+  color: #fff;
   text-decoration: none;
   font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .navbar a:hover {
-  color: #0066cc;
+  color: #5a8dee; /* 🔵 Blue hover now */
   transform: scale(1.1);
-  transition: transform 0.3s ease, color 0.3s ease;
 }
 
-/* Card Hover Effects */
+/* --- Card Hover Effects --- */
 .card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border-radius: 8px;
@@ -35,53 +103,54 @@ body {
 
 .card:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Glassmorphism Effect */
+/* --- Glassmorphism Effect for Cards --- */
 .glass-card {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(15px);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
 }
 
 .glass-card:hover {
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 20px rgba(90, 141, 238, 0.5); /* blue glow hover */
 }
 
-/* Button Styles */
+/* --- Button Styles --- */
 button {
-  background-color: #0066cc;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 5px;
-  border: none;
   transition: all 0.3s ease;
 }
 
 button:hover {
-  background-color: #005bb5;
+  background-color: #5a8dee;
+  color: white;
   transform: scale(1.05);
 }
 
-/* Dynamic Text Transitions */
-@keyframes textTransition {
+/* --- Rolling Words Animation --- */
+@keyframes wordSwap {
   0% { opacity: 0; }
-  25% { opacity: 0.5; }
   50% { opacity: 1; }
-  75% { opacity: 0.5; }
   100% { opacity: 0; }
 }
 
-.text-transition {
-  display: inline-block;
-  animation: textTransition 4s infinite;
+.cta-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  animation: wordSwap 2s ease-in-out infinite;
+  color: #5a8dee; /* 🔵 blue words */
 }
 
-/* Parallax Scrolling Effect */
+/* Smooth CTA Button Animation */
+.cta-button {
+  animation: smooth-loading 2s infinite ease-in-out;
+}
+
+/* --- Parallax Background for Mouse Movement --- */
 .parallax {
   position: absolute;
   top: 0;
@@ -94,7 +163,7 @@ button:hover {
   transform: translateZ(0);
 }
 
-/* Tabs for Interactive Layout */
+/* --- Tabs for Interactive Layout --- */
 .tabs {
   display: flex;
   margin-top: 20px;
@@ -110,22 +179,11 @@ button:hover {
 }
 
 .tab:hover {
-  background-color: #f5f5f5;
+  background-color: #333;
 }
 
 .active-tab {
-  border-bottom: 2px solid #0066cc;
+  border-bottom: 2px solid #5a8dee; /* 🔵 blue active tab */
   font-weight: bold;
-  color: #0066cc;
-}
-
-/* CTA Button Animation */
-@keyframes smooth-loading {
-  0% { background-color: #f0f0f0; }
-  50% { background-color: #e0e0e0; }
-  100% { background-color: #f0f0f0; }
-}
-
-.cta-button {
-  animation: smooth-loading 2s infinite ease-in-out;
+  color: #5a8dee;
 }
