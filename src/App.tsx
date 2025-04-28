@@ -13,7 +13,7 @@ function App() {
     <TradingProvider>
       <Router>
         <Navbar />
-        <div className="pt-16"> {/* Added padding-top for better content visibility */}
+        <div className="pt-16"> {/* Padding-top to avoid overlap */}
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/portfolio" element={<PortfolioMap />} />

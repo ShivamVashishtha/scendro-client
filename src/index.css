@@ -98,3 +98,26 @@ button:hover {
   background-color: #ff6c88;
   transform: scale(1.05);
 }
+
+/* Glassmorphism (Frosted Glass effect) */
+.glass-card {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Parallax Scrolling Effect */
+.parallax {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background-image: url(''); /* Removed the background image */
+  background-attachment: fixed;
+  background-size: cover;
+  z-index: -1;
+  transform: translateZ(0);
+}
