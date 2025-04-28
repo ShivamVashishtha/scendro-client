@@ -2,10 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global Styles */
+/* Custom Styles */
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #f9f9f9; /* Lighter background for better contrast */
+  background-color: #f9f9f9; /* Light background for readability */
   color: #333; /* Dark text for better contrast */
 }
 
@@ -27,6 +27,17 @@ body {
   transition: transform 0.3s ease, color 0.3s ease;
 }
 
+/* Card Hover Effects */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 8px;
+}
+
+.card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 /* Glassmorphism Effect */
 .glass-card {
   background: rgba(255, 255, 255, 0.15);
@@ -41,7 +52,7 @@ body {
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
 }
 
-/* Button Hover Effects */
+/* Button Styles */
 button {
   background-color: #0066cc;
   color: white;
@@ -67,7 +78,7 @@ button:hover {
 
 .text-transition {
   display: inline-block;
-  animation: textTransition 3s infinite;
+  animation: textTransition 4s infinite;
 }
 
 /* Parallax Scrolling Effect */

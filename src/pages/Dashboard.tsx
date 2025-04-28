@@ -59,6 +59,23 @@ const Dashboard = () => {
           )}
         </div>
 
+        {/* Widgets (example: Portfolio Summary and Trending Stocks) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+          <div className="glass-card p-6">
+            <h3 className="text-xl font-semibold mb-4">Portfolio Summary</h3>
+            <p className="text-gray-700">Current Value: $25,000</p>
+            <p className="text-gray-700">Growth: 5.5%</p>
+          </div>
+          <div className="glass-card p-6">
+            <h3 className="text-xl font-semibold mb-4">Trending Stocks</h3>
+            <ul className="text-gray-700">
+              <li>TSLA - $700 (+3.5%)</li>
+              <li>APPL - $150 (+2.0%)</li>
+              <li>AMZN - $3300 (+4.2%)</li>
+            </ul>
+          </div>
+        </div>
+
         {/* Call-to-Action Button */}
         <div className="mt-8">
           <button className="cta-button bg-blue-600 text-white py-2 px-6 rounded-lg">Get Started</button>
