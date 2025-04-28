@@ -9,7 +9,6 @@ const Navbar = () => {
           Scendro
         </Link>
         <div className="flex space-x-6">
-          <Link to="/" className="text-white text-lg hover:text-pink-500 transition-all">Dashboard</Link>
           <Link to="/portfolio" className="text-white text-lg hover:text-pink-500 transition-all">Portfolio</Link>
           <Link to="/scenario" className="text-white text-lg hover:text-pink-500 transition-all">Scenario Sim</Link>
           <Link to="/ai-advisor" className="text-white text-lg hover:text-pink-500 transition-all">AI Advisor</Link>
