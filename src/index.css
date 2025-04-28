@@ -6,9 +6,9 @@
 .particle {
   position: absolute;
   border-radius: 50%;
-  width: 10px;
-  height: 10px;
-  background-color: rgba(255, 255, 255, 0.5);
+  width: 12px;
+  height: 12px;
+  background-color: rgba(255, 255, 255, 0.6);
   animation: float 5s infinite ease-in-out;
   opacity: 0;
 }
@@ -59,9 +59,25 @@
   }
 }
 
-/* Additional custom styles */
-.bg-gradient-x {
+/* Add glow effect to the button and elements */
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+  }
+}
+
+.animate-gradient-x {
   background: linear-gradient(90deg, #3b82f6, #9c5ef4, #ff6c88);
   background-size: 400% 400%;
   animation: gradient-x 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 1.5s ease-in-out infinite;
 }
