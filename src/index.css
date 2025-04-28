@@ -41,7 +41,7 @@
 }
 
 .animate-gradient-x {
-  background: linear-gradient(90deg, #3b82f6, #9c5ef4, #ff6c88);
+  background: linear-gradient(90deg, #ff6c88, #9c5ef4, #3b82f6);
   background-size: 400% 400%;
   animation: gradient-x 3s ease-in-out infinite;
 }
@@ -64,7 +64,7 @@
 
 /* Navbar Styles */
 .navbar {
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(10px);
 }
 
@@ -72,4 +72,29 @@
   color: #ff6c88;
   transform: scale(1.1);
   transition: transform 0.3s ease, color 0.3s ease;
+}
+
+/* Dashboard Container */
+.dashboard-container {
+  padding-top: 80px; /* To ensure content is not hidden by navbar */
+}
+
+/* Card Hover Effects */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Button Styles */
+button {
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background-color: #ff6c88;
+  transform: scale(1.05);
 }

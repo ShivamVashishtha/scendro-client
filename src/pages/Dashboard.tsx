@@ -11,24 +11,21 @@ const Dashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-20 flex flex-col items-center justify-center min-h-screen text-white px-8 py-16">
+      <div className="relative z-20 flex flex-col items-center justify-center min-h-screen text-white px-8 py-16 dashboard-container">
         <h1 className="text-5xl font-bold animate-glow mb-8">Welcome to Your Dashboard</h1>
-        <div className="animate-gradient-x p-8 rounded-lg shadow-lg max-w-lg text-center">
-          <p className="text-xl">Track your investments and forecasts here.</p>
-        </div>
+        <p className="text-xl mb-12">Track your investments and forecasts here.</p>
 
-        {/* Additional Content */}
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
-          {/* Example Card */}
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center hover:bg-gray-100 transition-all">
+        {/* Interactive Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
+          <div className="card bg-white p-6 rounded-lg shadow-lg text-center hover:bg-gray-100 transition-all">
             <h2 className="text-2xl font-semibold mb-4">Portfolio Overview</h2>
             <p className="text-lg text-gray-700">Track the current state of your investments.</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center hover:bg-gray-100 transition-all">
+          <div className="card bg-white p-6 rounded-lg shadow-lg text-center hover:bg-gray-100 transition-all">
             <h2 className="text-2xl font-semibold mb-4">Performance Analytics</h2>
             <p className="text-lg text-gray-700">Analyze your portfolio's historical performance.</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center hover:bg-gray-100 transition-all">
+          <div className="card bg-white p-6 rounded-lg shadow-lg text-center hover:bg-gray-100 transition-all">
             <h2 className="text-2xl font-semibold mb-4">Scenario Simulation</h2>
             <p className="text-lg text-gray-700">Run different scenarios to forecast your portfolio's future.</p>
           </div>

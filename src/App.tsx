@@ -13,14 +13,16 @@ function App() {
     <TradingProvider>
       <Router>
         <Navbar />
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/portfolio" element={<PortfolioMap />} />
-          <Route path="/scenario" element={<ScenarioSim />} />
-          <Route path="/ai-advisor" element={<AIAdvisor />} />
-          <Route path="/paper-trading" element={<PaperTrading />} />
-          <Route path="/options" element={<OptionsTrading />} />
-        </Routes>
+        <div className="pt-16"> {/* Added padding-top for better content visibility */}
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/portfolio" element={<PortfolioMap />} />
+            <Route path="/scenario" element={<ScenarioSim />} />
+            <Route path="/ai-advisor" element={<AIAdvisor />} />
+            <Route path="/paper-trading" element={<PaperTrading />} />
+            <Route path="/options" element={<OptionsTrading />} />
+          </Routes>
+        </div>
       </Router>
     </TradingProvider>
   );
