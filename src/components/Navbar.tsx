@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 const Navbar = () => {
   return (
     <nav className="navbar fixed top-0 left-0 w-full z-30 bg-white shadow-md">
-      <div className="container mx-auto flex justify-between items-center py-4 px-8">
+      <div className="container mx-auto flex justify-between items-center py-6 px-10">
         <Link to="/" className="text-blue-600 text-3xl font-semibold hover:text-blue-500 transition-all">
           Scendro
         </Link>

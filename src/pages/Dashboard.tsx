@@ -4,23 +4,16 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("portfolio");
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 overflow-hidden">
-      {/* Parallax Background */}
-      <div className="parallax"></div>
-
-      {/* Floating Particles */}
-      <div className="absolute inset-0 flex justify-center items-center z-10">
-        <div className="particle animate-glow"></div>
-        <div className="particle animate-glow" style={{ animationDelay: "1s" }}></div>
-        <div className="particle animate-glow" style={{ animationDelay: "2s" }}></div>
-      </div>
-
+    <div className="relative min-h-screen bg-white overflow-hidden">
       {/* Main Content */}
-      <div className="relative z-20 flex flex-col items-center justify-center min-h-screen text-white px-8 py-16 dashboard-container">
-        <h1 className="text-5xl font-bold animate-glow mb-8 text-center">
+      <div className="relative z-20 flex flex-col items-center justify-center min-h-screen text-black px-8 py-16">
+        <h1 className="text-5xl font-bold mb-8 text-center">
           Welcome to Your Dashboard
         </h1>
-        <p className="text-xl mb-12 text-center">Track your investments and forecasts here.</p>
+        <p className="text-xl mb-12 text-center">
+          Track your{" "}
+          <span className="text-transition">investments and forecasts</span> here.
+        </p>
 
         {/* Tabs for navigation */}
         <div className="tabs">
