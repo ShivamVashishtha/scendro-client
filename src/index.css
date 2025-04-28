@@ -28,25 +28,6 @@
   }
 }
 
-.particle-1 {
-  top: 10%;
-  left: 30%;
-  animation-delay: 0s;
-}
-
-.particle-2 {
-  top: 50%;
-  left: 60%;
-  animation-delay: 1.5s;
-}
-
-.particle-3 {
-  top: 70%;
-  left: 85%;
-  animation-delay: 3s;
-}
-
-/* Gradient Animation */
 @keyframes gradient-x {
   0% {
     background-position: 0% 50%;
@@ -59,7 +40,12 @@
   }
 }
 
-/* Add glow effect to the button and elements */
+.animate-gradient-x {
+  background: linear-gradient(90deg, #3b82f6, #9c5ef4, #ff6c88);
+  background-size: 400% 400%;
+  animation: gradient-x 3s ease-in-out infinite;
+}
+
 @keyframes glow {
   0% {
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
@@ -70,12 +56,6 @@
   100% {
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
   }
-}
-
-.animate-gradient-x {
-  background: linear-gradient(90deg, #3b82f6, #9c5ef4, #ff6c88);
-  background-size: 400% 400%;
-  animation: gradient-x 3s ease-in-out infinite;
 }
 
 .animate-glow {
