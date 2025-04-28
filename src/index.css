@@ -1,3 +1,67 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom Styles for Animations */
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.5);
+  animation: float 5s infinite ease-in-out;
+  opacity: 0;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(-20px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.particle-1 {
+  top: 10%;
+  left: 30%;
+  animation-delay: 0s;
+}
+
+.particle-2 {
+  top: 50%;
+  left: 60%;
+  animation-delay: 1.5s;
+}
+
+.particle-3 {
+  top: 70%;
+  left: 85%;
+  animation-delay: 3s;
+}
+
+/* Gradient Animation */
+@keyframes gradient-x {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Additional custom styles */
+.bg-gradient-x {
+  background: linear-gradient(90deg, #3b82f6, #9c5ef4, #ff6c88);
+  background-size: 400% 400%;
+  animation: gradient-x 3s ease-in-out infinite;
+}
