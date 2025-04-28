@@ -1,14 +1,24 @@
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
 
-export default function Navbar() {
+const Navbar = () => {
   return (
-    <nav className="flex flex-wrap justify-center gap-6 p-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-lg shadow-md">
-      <Link to="/" className="hover:underline">Dashboard</Link>
-      <Link to="/portfolio" className="hover:underline">Portfolio Map</Link>
-      <Link to="/scenario" className="hover:underline">Scenario Simulator</Link>
-      <Link to="/ai-advisor" className="hover:underline">AI Advisor</Link>
-      <Link to="/paper-trading" className="hover:underline">Paper Trading</Link>
-      <Link to="/options" className="hover:underline">Options Trading</Link>
+    <nav className="navbar p-4 fixed w-full top-0 left-0 z-30">
+      <div className="container mx-auto flex justify-between items-center">
+        <Link to="/" className="text-white text-3xl font-bold">
+          StockScope AI
+        </Link>
+        <div className="flex space-x-6">
+          <Link to="/" className="text-white text-lg hover:text-pink-500 transition-all">Dashboard</Link>
+          <Link to="/portfolio" className="text-white text-lg hover:text-pink-500 transition-all">Portfolio</Link>
+          <Link to="/scenario" className="text-white text-lg hover:text-pink-500 transition-all">Scenario Sim</Link>
+          <Link to="/ai-advisor" className="text-white text-lg hover:text-pink-500 transition-all">AI Advisor</Link>
+          <Link to="/paper-trading" className="text-white text-lg hover:text-pink-500 transition-all">Paper Trading</Link>
+          <Link to="/options" className="text-white text-lg hover:text-pink-500 transition-all">Options</Link>
+        </div>
+      </div>
     </nav>
   );
-}
+};
+
+export default Navbar;

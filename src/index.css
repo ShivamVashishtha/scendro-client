@@ -61,3 +61,15 @@
 .animate-glow {
   animation: glow 1.5s ease-in-out infinite;
 }
+
+/* Navbar Styles */
+.navbar {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+}
+
+.navbar a:hover {
+  color: #ff6c88;
+  transform: scale(1.1);
+  transition: transform 0.3s ease, color 0.3s ease;
+}
