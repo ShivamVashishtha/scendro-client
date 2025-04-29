@@ -9,9 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import { saveOptionTrade, loadOptionTrades } from '../supabaseDatabase';
 import { supabase } from '../supabaseClient';
 
-const BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://scendro-backend.onrender.com'
-  : '';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL!;
+
 
 export default function OptionsTrading() {
   const [symbol, setSymbol] = useState('');
@@ -74,7 +73,7 @@ export default function OptionsTrading() {
     const cost = price * contracts * 100;
 
     try {
-      const res = await fetch(`${BASE_URL}/api/market-status`);
+      const res = await fetch(`${API_BASE_URL}/api/market-status`);
       const data = await res.json();
 
       if (!res.ok || typeof data.isMarketOpen !== 'boolean') {
@@ -158,7 +157,7 @@ export default function OptionsTrading() {
     }
 
     try {
-      const res = await fetch(`${BASE_URL}/api/ai-option-insight?symbol=${symbol}&strike=${strike}&option_type=${optionType}&current_price=${currentPrice}`);
+      const res = await fetch(`${API_BASE_URL}/api/ai-option-insight?symbol=${symbol}&strike=${strike}&option_type=${optionType}&current_price=${currentPrice}`);
       const data = await res.json();
       if (!data.error) {
         setOptionInsight(data.ai_analysis);
