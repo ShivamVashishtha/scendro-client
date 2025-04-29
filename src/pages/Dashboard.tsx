@@ -5,6 +5,7 @@ import Particles from "react-tsparticles";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom"; // 📢 Add this import at top
+import Footer from '../components/Footer'; // adjust path if needed
 
 const rollingWords = ["investments", "holdings", "portfolio", "simulations"];
 
@@ -191,6 +192,7 @@ const Dashboard = () => {
   </Link>
 </motion.div>
       </div>
+      <Footer />
     </div>
   );
 };

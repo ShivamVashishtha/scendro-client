@@ -9,7 +9,8 @@ import {
   saveHolding,
   savePaperTrade,
   loadHoldings,
-  loadPaperTrades
+  loadPaperTrades,
+  deleteQueuedPaperTrade, // ✅ Add this
 } from '../supabaseDatabase';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL!;
@@ -477,9 +478,15 @@ useEffect(() => {
     );
   }
 
-  const cancelQueuedOrder = (index: number) => {
+  const cancelQueuedOrder = async (index: number) => {
+    const order = queuedOrders[index];
     setQueuedOrders((prev) => prev.filter((_, i) => i !== index));
+  
+    if (user) {
+      await deleteQueuedPaperTrade(user.id, order.symbol, order.quantity, order.price);
+    }
   };
+  
   
   const cancelQueuedOptionTrade = (index: number) => {
     setQueuedOptionTrades((prev) => prev.filter((_, i) => i !== index));

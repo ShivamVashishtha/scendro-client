@@ -4,13 +4,16 @@ import OptionsChain from '../components/OptionsChain';
 import OptionsProfitChart from '../components/OptionsProfitChart';
 import { useTrading } from '../context/TradingContext';
 import { useNavigate } from 'react-router-dom';
-// 🔵 New: Supabase Imports
+// 🔵 Supabase Imports
 import { useAuth } from '../context/AuthContext';
-import { saveOptionTrade, loadOptionTrades } from '../supabaseDatabase';
+import {
+  saveOptionTrade,
+  loadOptionTrades,
+  deleteQueuedOptionTrade
+} from '../supabaseDatabase';
 import { supabase } from '../supabaseClient';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL!;
-
 
 export default function OptionsTrading() {
   const [symbol, setSymbol] = useState('');
@@ -24,11 +27,10 @@ export default function OptionsTrading() {
   const [currentPrice, setCurrentPrice] = useState<number | undefined>();
   const [optionInsight, setOptionInsight] = useState<string | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
-const [errorInsight, setErrorInsight] = useState<string | null>(null);
-
+  const [errorInsight, setErrorInsight] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const { user } = useAuth(); // 🔵 Supabase user
+  const { user } = useAuth();
 
   const {
     balance,
@@ -46,19 +48,29 @@ const [errorInsight, setErrorInsight] = useState<string | null>(null);
     ? strike + actualPremium
     : strike - actualPremium;
 
-  // 🔵 Load existing option trades
+  // 🔵 Load executed + queued option trades
   useEffect(() => {
     if (!user) return;
 
     async function fetchData() {
       const { data } = await loadOptionTrades(user.id);
       if (data) {
-        setOptionTrades(data.map(d => ({
+        const executed = data.filter(t => t.status === 'executed');
+        const queued = data.filter(t => t.status === 'queued');
+
+        setOptionTrades(executed.map(d => ({
           type: d.option_symbol.includes('C') ? 'BUY_CALL' : 'BUY_PUT',
           symbol: d.option_symbol,
           contracts: d.quantity,
           price: d.price,
           realizedPL: 0,
+        })));
+
+        setQueuedOptionTrades(queued.map(d => ({
+          type: d.option_symbol.includes('C') ? 'BUY_CALL' : 'BUY_PUT',
+          symbol: d.option_symbol,
+          contracts: d.quantity,
+          price: d.price,
         })));
       }
     }
@@ -71,57 +83,44 @@ const [errorInsight, setErrorInsight] = useState<string | null>(null);
       alert('Incomplete trade details');
       return;
     }
-
+  
     const price = actualPremium;
     const cost = price * contracts * 100;
-
+  
     try {
       const res = await fetch(`${API_BASE_URL}/api/market-status`);
       const data = await res.json();
-
+  
       if (!res.ok || typeof data.isMarketOpen !== 'boolean') {
         throw new Error('Invalid response from market status endpoint');
       }
-
+  
       const isMarketOpen = data.isMarketOpen;
-      const action = isBuy ? 'BUY' : 'SELL';
-
-      if (action === 'SELL' && optionType === 'CALL') {
-        const holding = holdings.find((h) => h.symbol === symbol);
-        if (!holding || holding.quantity < contracts * 100) {
-          alert('Not enough shares for a Covered Call');
-          return;
-        }
-      }
-
-      if (action === 'SELL' && optionType === 'PUT') {
-        const requiredCash = strike * 100 * contracts;
-        if (balance < requiredCash) {
-          alert('Not enough buying power for Cash-Secured Put');
-          return;
-        }
-      }
-
-      const tradeType = `${action}_${optionType}` as 'BUY_CALL' | 'SELL_CALL' | 'BUY_PUT' | 'SELL_PUT';
+      const tradeType = `${isBuy ? 'BUY' : 'SELL'}_${optionType}` as 'BUY_CALL' | 'SELL_CALL' | 'BUY_PUT' | 'SELL_PUT';
       const trade = { type: tradeType, symbol, contracts, price, realizedPL: 0 };
-
+  
       if (isMarketOpen && orderType.includes('MARKET')) {
         if (isBuy && cost > balance) {
           alert('Not enough balance to buy this option');
           return;
         }
-        if (isBuy) setBalance((b) => b - cost);
-        else setBalance((b) => b + cost);
-        setOptionTrades([...optionTrades, trade]);
-
-        // 🔵 Save to Supabase if user exists
+        isBuy ? setBalance(b => b - cost) : setBalance(b => b + cost);
+        setOptionTrades(prev => [...prev, trade]);
+  
+        // ✅ Save executed
         if (user) {
-          await saveOptionTrade(user.id, symbol, strike, contracts, price);
+          await saveOptionTrade(user.id, symbol, strike, contracts, price, 'executed');
         }
-
+  
         alert('✅ Trade executed!');
       } else {
-        setQueuedOptionTrades((q) => [...q, trade]);
+        setQueuedOptionTrades(prev => [...prev, trade]);
+  
+        // ✅ Save queued
+        if (user) {
+          await saveOptionTrade(user.id, symbol, strike, contracts, price, 'queued');
+        }
+  
         alert('⏳ Market closed — trade queued.');
       }
     } catch (err) {
@@ -129,29 +128,19 @@ const [errorInsight, setErrorInsight] = useState<string | null>(null);
       alert('⚠️ Could not determine if the market is open. Please try again.');
     }
   };
-
+  
   const cancelOrder = async (index: number) => {
-    const prevOrders = [...queuedOptionTrades];
-    const orderToDelete = prevOrders[index];
+    const orderToDelete = queuedOptionTrades[index];
+    setQueuedOptionTrades(prev => prev.filter((_, i) => i !== index));
   
-    if (!orderToDelete) return;
-  
-    setQueuedOptionTrades((prev) => prev.filter((_, i) => i !== index));
-  
-    // 🔵 Delete from Supabase if saved
-    const { data: { user } } = await supabase.auth.getUser();
+    // ✅ Delete from Supabase
     if (user) {
-      await supabase
-        .from('options_trades')
-        .delete()
-        .match({
-          user_id: user.id,
-          option_symbol: orderToDelete.symbol,
-          strike_price: orderToDelete.price,
-          quantity: orderToDelete.contracts,
-        });
+      await deleteQueuedOptionTrade(user.id, orderToDelete.symbol, orderToDelete.contracts, orderToDelete.price);
     }
   };
+  
+
+
 
   const generateOptionInsight = async () => {
     if (!symbol || strike <= 0 || !optionType || currentPrice === undefined) {

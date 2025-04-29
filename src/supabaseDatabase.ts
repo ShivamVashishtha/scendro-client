@@ -1,7 +1,7 @@
-// eslint-disable-next-line
+// supabaseDatabase.ts
 import { supabase } from "./supabaseClient";
 
-// Save a holding
+// 🔵 Save a holding to portfolio
 export async function saveHolding(userId: string, symbol: string, quantity: number, avgPrice: number) {
   const { error } = await supabase.from('portfolio_holdings').insert({
     user_id: userId,
@@ -12,7 +12,7 @@ export async function saveHolding(userId: string, symbol: string, quantity: numb
   return error;
 }
 
-// Load holdings
+// 🔵 Load holdings for user
 export async function loadHoldings(userId: string) {
   const { data, error } = await supabase
     .from('portfolio_holdings')
@@ -21,14 +21,14 @@ export async function loadHoldings(userId: string) {
   return { data, error };
 }
 
-// Save paper trade
+// 🔵 Save a paper trade (status = 'executed' | 'queued')
 export async function savePaperTrade(
   userId: string,
   ticker: string,
   quantity: number,
   price: number,
   orderType: string,
-  status: string  // <--- fix here
+  status: string = 'executed'
 ) {
   const { error } = await supabase.from('paper_trades').insert({
     user_id: userId,
@@ -41,7 +41,7 @@ export async function savePaperTrade(
   return error;
 }
 
-// Load paper trades
+// 🔵 Load all paper trades for a user
 export async function loadPaperTrades(userId: string) {
   const { data, error } = await supabase
     .from('paper_trades')
@@ -50,24 +50,71 @@ export async function loadPaperTrades(userId: string) {
   return { data, error };
 }
 
-
-// Save option trade
-export async function saveOptionTrade(userId: string, optionSymbol: string, strikePrice: number, quantity: number, price: number) {
+// 🔵 Save an option trade (queued or executed)
+export async function saveOptionTrade(
+  userId: string,
+  optionSymbol: string,
+  strikePrice: number,
+  quantity: number,
+  price: number,
+  status: string = 'executed'
+) {
   const { error } = await supabase.from('options_trades').insert({
     user_id: userId,
     option_symbol: optionSymbol,
     strike_price: strikePrice,
     quantity,
     price,
+    status,
   });
   return error;
 }
 
-// Load option trades
+// 🔵 Load all option trades for user
 export async function loadOptionTrades(userId: string) {
   const { data, error } = await supabase
     .from('options_trades')
     .select('*')
     .eq('user_id', userId);
   return { data, error };
+}
+
+// 🔴 Delete a queued option trade (on cancel)
+export async function deleteQueuedOptionTrade(
+  userId: string,
+  optionSymbol: string,
+  quantity: number,
+  price: number
+) {
+  const { error } = await supabase
+    .from('options_trades')
+    .delete()
+    .match({
+      user_id: userId,
+      option_symbol: optionSymbol,
+      quantity,
+      price,
+      status: 'queued'
+    });
+  return error;
+}
+
+// 🔴 Delete a queued paper trade (on cancel)
+export async function deleteQueuedPaperTrade(
+  userId: string,
+  ticker: string,
+  quantity: number,
+  price: number
+) {
+  const { error } = await supabase
+    .from('paper_trades')
+    .delete()
+    .match({
+      user_id: userId,
+      ticker,
+      quantity,
+      price,
+      status: 'queued'
+    });
+  return error;
 }
