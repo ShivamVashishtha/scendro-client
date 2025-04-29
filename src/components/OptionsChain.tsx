@@ -40,12 +40,12 @@ export default function OptionsChain({ symbol, onSelect, setCurrentPrice }: Prop
     if (!symbol) return;
 
     fetch(`${API_BASE_URL}/api/options/dates?symbol=${symbol}`)
-      .then(res => res.json())
-      .then(data => setExpirations(data.expirations || []))
-      .catch(err => {
-        console.error("Error fetching expiration dates:", err);
-        alert("⚠️ Could not load expiration dates.");
-      });
+  .then(res => res.json())
+  .then(data => setExpirations(data.expirations || []))
+  .catch(err => {
+    console.error("Error fetching expiration dates:", err);
+    alert("⚠️ Could not load expiration dates.");
+  });
 
     fetchPriceAndOptions(); // Initial
   }, [symbol]);
@@ -56,7 +56,7 @@ export default function OptionsChain({ symbol, onSelect, setCurrentPrice }: Prop
   }, [selectedDate]);
 
   const fetchPrice = () => {
-    fetch(`/api/price?symbol=${symbol}`)
+    fetch(`${API_BASE_URL}/api/price?symbol=${symbol}`)
       .then(async (res) => {
         const json = await res.json();
         if (!json || typeof json.price !== 'number') {
@@ -87,7 +87,7 @@ export default function OptionsChain({ symbol, onSelect, setCurrentPrice }: Prop
   const fetchOptionsChain = () => {
     if (!selectedDate) return;
 
-    fetch(`${API_BASE_URL}/api/options/dates?symbol=${symbol}&expiry=${selectedDate}`)
+    fetch(`${API_BASE_URL}/api/options/chain?symbol=${symbol}&expiry=${selectedDate}`)
       .then((res) => res.json())
       .then((data) => {
         if (!data || !Array.isArray(data.calls) || !Array.isArray(data.puts)) {
