@@ -33,11 +33,13 @@ export default function OptionsChain({ symbol, onSelect, setCurrentPrice }: Prop
   const [localPrice, setLocalPrice] = useState<number | null>(null);
   const [previousPrice, setPreviousPrice] = useState<number | null>(null);
   const [priceFlash, setPriceFlash] = useState<'up' | 'down' | null>(null);
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL!;
+
 
   useEffect(() => {
     if (!symbol) return;
 
-    fetch(`/api/options/dates?symbol=${symbol}`)
+    fetch(`${API_BASE_URL}/api/options/dates?symbol=${symbol}`)
       .then(res => res.json())
       .then(data => setExpirations(data.expirations || []))
       .catch(err => {
@@ -85,7 +87,7 @@ export default function OptionsChain({ symbol, onSelect, setCurrentPrice }: Prop
   const fetchOptionsChain = () => {
     if (!selectedDate) return;
 
-    fetch(`/api/options/chain?symbol=${symbol}&expiry=${selectedDate}`)
+    fetch(`${API_BASE_URL}/api/options/dates?symbol=${symbol}&expiry=${selectedDate}`)
       .then((res) => res.json())
       .then((data) => {
         if (!data || !Array.isArray(data.calls) || !Array.isArray(data.puts)) {
