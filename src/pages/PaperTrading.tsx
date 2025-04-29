@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import StockChart from '../components/StockChart';
 import { useNavigate } from 'react-router-dom';
 import { useTrading } from '../context/TradingContext';
+import { supabase } from '../supabaseClient';
+import {
+  saveHolding,
+  savePaperTrade,
+  loadHoldings,
+  loadPaperTrades
+} from '../supabaseDatabase';
 import type { QueuedOptionTrade, OptionTrade } from '../context/TradingContext';
+import StockChart from '../components/StockChart';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL!;
-
 
 type Holding = {
   symbol: string;
@@ -30,40 +36,31 @@ type QueuedTrade = {
 
 export default function PaperTrading() {
   const { isSetupComplete, setIsSetupComplete } = useTrading();
-const [startingBalance, setStartingBalance] = useState(10000);
-const [symbol, setSymbol] = useState('');
-const [quantity, setQuantity] = useState(0);
-const [limitPrice, setLimitPrice] = useState(0);
-const [orderType, setOrderType] = useState('MARKET_BUY');
-const [marketPrice, setMarketPrice] = useState(0);
+  const [startingBalance, setStartingBalance] = useState(10000);
+  const [symbol, setSymbol] = useState('');
+  const [quantity, setQuantity] = useState(0);
+  const [limitPrice, setLimitPrice] = useState(0);
+  const [orderType, setOrderType] = useState('MARKET_BUY');
+  const [marketPrice, setMarketPrice] = useState(0);
+  const [user, setUser] = useState<any>(null);
 
-const [openPLShares, setOpenPLShares] = useState(0);
-const [openPLOptions, setOpenPLOptions] = useState(0);
-const [realizedPLShares, setRealizedPLShares] = useState(0);
-const [realizedPLOptions, setRealizedPLOptions] = useState(0);
-const [displayedPLType, setDisplayedPLType] = useState<'total' | 'shares' | 'options'>('total');
-const [pricesBySymbol, setPricesBySymbol] = useState<{ [key: string]: number }>({});
+  const [openPLShares, setOpenPLShares] = useState(0);
+  const [openPLOptions, setOpenPLOptions] = useState(0);
+  const [realizedPLShares, setRealizedPLShares] = useState(0);
+  const [realizedPLOptions, setRealizedPLOptions] = useState(0);
+  const [displayedPLType, setDisplayedPLType] = useState<'total' | 'shares' | 'options'>('total');
+  const [pricesBySymbol, setPricesBySymbol] = useState<{ [key: string]: number }>({});
 
-
-const { queuedOrders, setQueuedOrders } = useTrading();
-
-
-  const navigate = useNavigate();
-
-  // ✅ GLOBAL STATE from TradingContext
   const {
-    balance,
-    setBalance,
-    holdings,
-    setHoldings,
-    trades,
-    setTrades,
-    optionTrades,
-    setOptionTrades,
-    queuedOptionTrades,
-    setQueuedOptionTrades,
+    queuedOrders, setQueuedOrders,
+    balance, setBalance,
+    holdings, setHoldings,
+    trades, setTrades,
+    optionTrades, setOptionTrades,
+    queuedOptionTrades, setQueuedOptionTrades
   } = useTrading();
 
+  const navigate = useNavigate();
   const alphaKey = process.env.REACT_APP_ALPHA_KEY!;
 
   const isMarketOpen = () => {
@@ -72,13 +69,60 @@ const { queuedOrders, setQueuedOrders } = useTrading();
     const hours = now.getHours();
     const minutes = now.getMinutes();
     return (
-      day >= 1 &&
-      day <= 5 &&
+      day >= 1 && day <= 5 &&
       (hours > 9 || (hours === 9 && minutes >= 30)) &&
       (hours < 16 || (hours === 16 && minutes === 0))
     );
   };
 
+  // Fetch logged-in user
+  useEffect(() => {
+    async function fetchUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    }
+    fetchUser();
+  }, []);
+
+  // Load holdings and trades
+  useEffect(() => {
+    if (!user) return;
+    async function loadUserData() {
+      const { data: holdingsData } = await loadHoldings(user.id);
+      const { data: tradesData } = await loadPaperTrades(user.id);
+
+      if (holdingsData) {
+        setHoldings(holdingsData.map((h: any) => ({
+          symbol: h.symbol,
+          quantity: h.quantity,
+          avgPrice: h.avg_price,
+        })));
+      }
+
+      if (tradesData) {
+        const executed = tradesData.filter((t: any) => t.status === 'executed');
+        const queued = tradesData.filter((t: any) => t.status === 'queued');
+
+        setTrades(executed.map((t: any) => ({
+          type: t.order_type,
+          symbol: t.ticker,
+          quantity: t.quantity,
+          price: t.price,
+          realizedPL: 0,
+        })));
+
+        setQueuedOrders(queued.map((t: any) => ({
+          type: t.order_type,
+          symbol: t.ticker,
+          quantity: t.quantity,
+          price: t.price,
+        })));
+      }
+    }
+    loadUserData();
+  }, [user]);
+
+  // Fetch current prices
   useEffect(() => {
     const fetchPrices = async () => {
       const prices: { [key: string]: number } = {};
@@ -93,12 +137,10 @@ const { queuedOrders, setQueuedOrders } = useTrading();
       }
       setPricesBySymbol(prices);
     };
-  
     fetchPrices();
     const interval = setInterval(fetchPrices, 30000);
     return () => clearInterval(interval);
   }, [holdings]);
-  
 
   useEffect(() => {
     const fetchPrice = async () => {
@@ -107,50 +149,35 @@ const { queuedOrders, setQueuedOrders } = useTrading();
         const data = await res.json();
         if (data.price) setMarketPrice(data.price);
       } catch (err) {
-        console.error("Error fetching price:", err);
+        console.error('Error fetching price:', err);
       }
     };
-  
-    fetchPrice(); // initial
-    const interval = setInterval(fetchPrice, 15000); // every 15s
-  
+    fetchPrice();
+    const interval = setInterval(fetchPrice, 15000);
     return () => clearInterval(interval);
   }, [symbol]);
-  
 
   useEffect(() => {
     let sharePL = 0;
     holdings.forEach((h) => {
       sharePL += (marketPrice - h.avgPrice) * h.quantity;
     });
-  
-    let optionPL = 0;
-    optionTrades.forEach((t) => {
-      const notionalNow = marketPrice * 100 * t.contracts;
-      const cost = t.price * 100 * t.contracts;
-  
-      if (t.type.startsWith('BUY')) {
-        optionPL += notionalNow - cost;  // Profit if price went up
-      } else {
-        optionPL += cost - notionalNow;  // Profit if price went down
-      }
-    });
-  
     setOpenPLShares(sharePL);
-    setOpenPLOptions(optionPL);
-  }, [marketPrice, holdings, optionTrades]);
-  
+  }, [marketPrice, holdings]);
 
   useEffect(() => {
     if (!isMarketOpen() || queuedOrders.length === 0) return;
-    queuedOrders.forEach((order) => {
-      if (order.type === 'BUY') handleBuy(order.symbol, order.quantity, true, order.price);
-      else handleSell(order.symbol, order.quantity, true, order.price);
+    queuedOrders.forEach(async (order) => {
+      if (order.type === 'BUY') await handleBuy(order.symbol, order.quantity, true, order.price);
+      else await handleSell(order.symbol, order.quantity, true, order.price);
+      if (user) {
+        await savePaperTrade(user.id, order.symbol, order.quantity, order.price, order.type, 'executed');
+      }
     });
     setQueuedOrders([]);
   }, [marketPrice]);
 
-  const handleBuy = (
+  const handleBuy = async (
     customSymbol: string = symbol,
     customQty: number = quantity,
     fromQueue = false,
@@ -166,25 +193,27 @@ const { queuedOrders, setQueuedOrders } = useTrading();
 
     const existing = holdings.find((h) => h.symbol === customSymbol);
     let updatedHoldings;
-
     if (existing) {
       const totalQty = existing.quantity + customQty;
-      const newAvg =
-        (existing.avgPrice * existing.quantity + price * customQty) / totalQty;
+      const newAvg = (existing.avgPrice * existing.quantity + price * customQty) / totalQty;
       updatedHoldings = holdings.map((h) =>
         h.symbol === customSymbol ? { ...h, quantity: totalQty, avgPrice: newAvg } : h
       );
     } else {
       updatedHoldings = [...holdings, { symbol: customSymbol, quantity: customQty, avgPrice: price }];
     }
-
     setHoldings(updatedHoldings);
     setBalance((b) => b - cost);
     setTrades((t) => [...t, { type: 'BUY', symbol: customSymbol, quantity: customQty, price, realizedPL: 0 }]);
+
+    if (!fromQueue && user) {
+      await saveHolding(user.id, customSymbol, customQty, price);
+      await savePaperTrade(user.id, customSymbol, customQty, price, 'BUY', 'executed');
+    }
     if (!fromQueue) setQuantity(0);
   };
 
-  const handleSell = (
+  const handleSell = async (
     customSymbol: string = symbol,
     customQty: number = quantity,
     fromQueue = false,
@@ -211,132 +240,115 @@ const { queuedOrders, setQueuedOrders } = useTrading();
     setHoldings(updatedHoldings);
     setBalance((b) => b + proceeds);
     setRealizedPLShares((p) => p + pl);
-
     setTrades((t) => [...t, { type: 'SELL', symbol: customSymbol, quantity: customQty, price, realizedPL: pl }]);
+
+    if (!fromQueue && user) {
+      await saveHolding(user.id, customSymbol, existing.quantity - customQty, existing.avgPrice);
+      await savePaperTrade(user.id, customSymbol, customQty, price, 'SELL', 'executed');
+    }
     if (!fromQueue) setQuantity(0);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const upperType = orderType.toUpperCase();
     const isLimit = upperType.includes('LIMIT');
     const isBuy = upperType.includes('BUY');
     const price = isLimit ? limitPrice : marketPrice;
-  
+
     if (price <= 0 || quantity <= 0) {
       alert('Invalid price or quantity.');
       return;
     }
-  
     if (!symbol) {
       alert('Please enter a symbol.');
       return;
     }
-  
-    const existing = holdings.find((h) => h.symbol === symbol);
-  
-    if (!isBuy && (!existing || existing.quantity < quantity)) {
-      alert('Not enough shares to sell!');
-      return;
-    }
-  
-    const orderCost = price * quantity;
-  
-    const totalQueuedBuyCost = queuedOrders
-      .filter((o) => o.type === 'BUY')
-      .reduce((sum, o) => sum + o.price * o.quantity, 0);
-  
-    const availableBalance = balance - totalQueuedBuyCost;
-  
-    if (isBuy && isLimit && orderCost > availableBalance) {
-      alert(`Not enough buying power to queue this order. You need $${orderCost.toFixed(2)}, but only have $${availableBalance.toFixed(2)} available.`);
-      return;
-    }
-  
-    if (isBuy && !isLimit && orderCost > availableBalance) {
-      alert(`Not enough buying power to execute this order. You need $${orderCost.toFixed(2)}, but only have $${availableBalance.toFixed(2)} available.`);
-      return;
-    }
-  
+
     if (isMarketOpen() && !isLimit) {
-      isBuy ? handleBuy(symbol, quantity) : handleSell(symbol, quantity);
+      isBuy ? await handleBuy(symbol, quantity) : await handleSell(symbol, quantity);
     } else {
       alert('Order has been queued.');
-      setQueuedOrders((q) => [
-        ...q,
-        {
-          type: isBuy ? 'BUY' : 'SELL',
-          symbol,
-          quantity,
-          price,
-        },
-      ]);
-      setQuantity(0);
+      setQueuedOrders((q) => [...q, { type: isBuy ? 'BUY' : 'SELL', symbol, quantity, price }]);
+      if (user) {
+        await savePaperTrade(user.id, symbol, quantity, price, isBuy ? 'BUY' : 'SELL', 'queued');
+      }
     }
   };
 
-  useEffect(() => {
-    if (!isMarketOpen() || queuedOptionTrades.length === 0) return;
-  
-    const executed: OptionTrade[] = [];
-  
-    queuedOptionTrades.forEach((trade) => {
-      const { type, symbol, contracts, price } = trade;
-  
-      if (type.startsWith('BUY')) {
-        const cost = price * contracts * 100;
-        if (balance >= cost) {
-          setBalance((b) => b - cost);
-          executed.push({ ...trade, realizedPL: 0 });
-        }
-      } else {
-        // For sells, add the premium as credit
-        const credit = price * contracts * 100;
-        setBalance((b) => b + credit);
-        executed.push({ ...trade, realizedPL: 0 });
-      }
-    });
-  
-    setOptionTrades((prev) => [...prev, ...executed]);
-    setQueuedOptionTrades([]); // clear after execution
-  }, [marketPrice]);
-  
-  
-  
-
-  // Setup screen for starting balance
   if (!isSetupComplete) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6">
-        <h1 className="text-3xl font-bold mb-6">⚙️ Setup Your Simulation</h1>
-        <div className="bg-gray-800 p-6 rounded shadow w-full max-w-md mx-auto">
-          <label className="block mb-2 text-sm">Starting Balance ($):</label>
+      <div className="min-h-screen bg-gray-900 text-white p-6 flex justify-center items-center">
+        <div className="bg-gray-800 p-6 rounded shadow w-full max-w-md">
+          <h1 className="text-3xl font-bold mb-6">⚙️ Setup Simulation</h1>
           <input
             type="number"
             value={startingBalance}
             onChange={(e) => setStartingBalance(parseFloat(e.target.value))}
-            className="bg-gray-700 text-white px-3 py-2 rounded w-full mb-4"
+            className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
+            placeholder="Starting Balance ($)"
           />
           <button
             onClick={() => {
               setBalance(startingBalance);
               setIsSetupComplete(true);
             }}
-            className="bg-green-500 px-4 py-2 rounded text-black font-semibold hover:bg-green-600 w-full"
+            className="w-full py-2 bg-green-500 hover:bg-green-600 text-black rounded font-semibold"
           >
-            Start Simulation
+            Start
           </button>
         </div>
       </div>
     );
   }
 
-  const cancelQueuedOrder = (index: number) => {
+  const cancelQueuedOrder = async (index: number) => {
+    const prevOrders = [...queuedOrders];
+    const orderToDelete = prevOrders[index];
+  
+    if (!orderToDelete) return;
+  
     setQueuedOrders((prev) => prev.filter((_, i) => i !== index));
+  
+    // Delete from Supabase if saved there
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from('paper_trades')
+        .delete()
+        .match({
+          user_id: user.id,
+          ticker: orderToDelete.symbol,
+          quantity: orderToDelete.quantity,
+          price: orderToDelete.price,
+          order_type: orderToDelete.type,
+          status: 'queued',
+        });
+    }
   };
   
-  const cancelQueuedOptionTrade = (index: number) => {
+  const cancelQueuedOptionTrade = async (index: number) => {
+    const prevOptionTrades = [...queuedOptionTrades];
+    const optionTradeToDelete = prevOptionTrades[index];
+  
+    if (!optionTradeToDelete) return;
+  
     setQueuedOptionTrades((prev) => prev.filter((_, i) => i !== index));
+  
+    // Delete from Supabase if saved there (if you also store options in database)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from('options_trades') // Adjust if you're saving options differently
+        .delete()
+        .match({
+          user_id: user.id,
+          option_symbol: optionTradeToDelete.symbol,
+          strike_price: optionTradeToDelete.price,
+          quantity: optionTradeToDelete.contracts,
+        });
+    }
   };
+  
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">

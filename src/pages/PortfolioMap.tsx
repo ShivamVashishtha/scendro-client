@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FaSearch, FaPlus, FaChartLine, FaMoon, FaSun } from 'react-icons/fa';
 import { Line } from 'react-chartjs-2';
+import { supabase } from "../supabaseClient"; // 🛠️ import Supabase client
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -38,6 +39,36 @@ export default function PortfolioMap() {
     setPortfolio([...portfolio, symbol]);
     setInput('');
     await fetchSentiment(symbol);
+
+    const handleDeleteTicker = async (symbol: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+    
+      // Remove locally
+      setPortfolio((prev) => prev.filter((s) => s !== symbol));
+      setSentimentData((prev) => {
+        const updated = { ...prev };
+        delete updated[symbol];
+        return updated;
+      });
+    
+      // Remove from Supabase
+      await supabase
+        .from('portfolio_holdings')
+        .delete()
+        .match({ user_id: user.id, symbol });
+    };
+    
+    // 🔵 Save added ticker to Supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('portfolio_holdings').insert({
+        user_id: user.id,
+        symbol,
+        quantity: 0,
+        avg_price: 0,
+      });
+    }
   };
 
   const summarizeHeadlines = (headlines: string[]): string => {
@@ -50,11 +81,11 @@ export default function PortfolioMap() {
 
   const fetchSentiment = async (symbol: string) => {
     try {
-      const quoteRes = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${process.env.REACT_APP_ALPHA_KEY}`);
+      const quoteRes = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${alphaKey}`);
       const quoteData = await quoteRes.json();
       const q = quoteData['Global Quote'];
 
-      const historyRes = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${process.env.REACT_APP_ALPHA_KEY}`);
+      const historyRes = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${alphaKey}`);
       const historyJson = await historyRes.json();
       const historyObj = historyJson['Time Series (Daily)'];
       const history = historyObj ? Object.values(historyObj).slice(0, 10).map((entry: any) => parseFloat(entry['4. close'])).reverse() : [];
@@ -64,7 +95,7 @@ export default function PortfolioMap() {
       lastWeek.setDate(today.getDate() - 3);
       const fromDate = lastWeek.toISOString().split('T')[0];
 
-      const newsRes = await fetch(`https://newsapi.org/v2/everything?q=${symbol}&from=${fromDate}&sortBy=publishedAt&pageSize=5&language=en&apiKey=${process.env.REACT_APP_NEWS_KEY}`);
+      const newsRes = await fetch(`https://newsapi.org/v2/everything?q=${symbol}&from=${fromDate}&sortBy=publishedAt&pageSize=5&language=en&apiKey=${newsKey}`);
       const newsData = await newsRes.json();
       const headlines: string[] = newsData.articles?.slice(0, 5).map((a: any) => a.title) || [];
 
@@ -169,6 +200,24 @@ export default function PortfolioMap() {
       </div>
     </div>
   );
+
+  useEffect(() => {
+    async function loadSavedPortfolio() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('portfolio_holdings')
+          .select('symbol')
+          .eq('user_id', user.id);
+        if (data) {
+          const symbols = data.map((entry: any) => entry.symbol);
+          setPortfolio(symbols);
+          symbols.forEach(fetchSentiment);
+        }
+      }
+    }
+    loadSavedPortfolio();
+  }, []);
 
   return (
     <div className={`${darkMode ? 'bg-gray-900 text-white' : 'bg-gradient-to-br from-[#e3f2fd] via-[#f9fbff] to-[#f1faff] text-[#1b1f3b]'} min-h-screen p-10 font-['Inter']`}>

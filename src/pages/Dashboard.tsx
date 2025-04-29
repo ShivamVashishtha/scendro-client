@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Tilt from "react-parallax-tilt";
 import { motion } from "framer-motion";
 import Particles from "react-tsparticles";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom"; // 📢 Add this import at top
 
 const rollingWords = ["investments", "holdings", "portfolio", "simulations"];
 
@@ -9,17 +12,43 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("portfolio");
   const [currentWord, setCurrentWord] = useState(0);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [holdings, setHoldings] = useState<any[]>([]);
+  const auth = useAuth();
+  const user = auth?.user;
 
-  React.useEffect(() => {
+
+  // Rolling words cycle
+  useEffect(() => {
     const interval = setInterval(() => {
       setCurrentWord((prev) => (prev + 1) % rollingWords.length);
     }, 2000);
     return () => clearInterval(interval);
   }, []);
 
+  // Mouse movement for parallax
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const { clientX, clientY } = e;
     setMousePosition({ x: clientX, y: clientY });
+  };
+
+  // Fetch Holdings
+  useEffect(() => {
+    if (user) {
+      fetchHoldings();
+    }
+  }, [user]);
+
+  const fetchHoldings = async () => {
+    const { data, error } = await supabase
+      .from("paper_trades")
+      .select("*")
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error(error.message);
+    } else {
+      setHoldings(data || []);
+    }
   };
 
   return (
@@ -109,15 +138,31 @@ const Dashboard = () => {
         </div>
 
         {/* Dynamic Content */}
-        <div className="mt-6">
+        <div className="mt-6 w-full max-w-4xl">
           {activeTab === "portfolio" && (
             <Tilt glareEnable={true} glareMaxOpacity={0.2} scale={1.02} tiltMaxAngleX={10} tiltMaxAngleY={10}>
               <div className="glass-card p-6 text-center">
                 <h2 className="text-2xl font-semibold mb-4">Portfolio Overview</h2>
-                <p className="text-lg text-gray-400">Track the current state of your investments.</p>
+
+                {holdings.length === 0 ? (
+                  <p className="text-lg text-gray-400">No holdings yet. Start trading!</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {holdings.map((trade) => (
+                      <div key={trade.id} className="bg-black bg-opacity-30 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold">{trade.ticker}</h3>
+                        <p className="text-gray-400">
+                          {trade.quantity} shares @ ${trade.price}
+                        </p>
+                        <p className="text-gray-400 text-sm mt-1">{trade.order_type}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </Tilt>
           )}
+
           {activeTab === "scenario" && (
             <Tilt glareEnable={true} glareMaxOpacity={0.2} scale={1.02} tiltMaxAngleX={10} tiltMaxAngleY={10}>
               <div className="glass-card p-6 text-center">
@@ -126,6 +171,7 @@ const Dashboard = () => {
               </div>
             </Tilt>
           )}
+
           {activeTab === "ai" && (
             <Tilt glareEnable={true} glareMaxOpacity={0.2} scale={1.02} tiltMaxAngleX={10} tiltMaxAngleY={10}>
               <div className="glass-card p-6 text-center">
@@ -138,10 +184,12 @@ const Dashboard = () => {
 
         {/* CTA Button */}
         <motion.div className="mt-8" whileHover={{ scale: 1.1 }}>
-          <button className="cta-button bg-blue-600 text-white py-2 px-6 rounded-lg">
-            Get Started
-          </button>
-        </motion.div>
+  <Link to="/signup">
+    <button className="cta-button bg-blue-600 text-white py-2 px-6 rounded-lg">
+      Get Started
+    </button>
+  </Link>
+</motion.div>
       </div>
     </div>
   );
