@@ -16,6 +16,8 @@ import {
   Legend,
   ArcElement
 } from 'chart.js';
+import { supabase } from '../supabaseClient';
+
 
 ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, ArcElement);
 
@@ -256,7 +258,28 @@ export default function ScenarioSim() {
     }
   }, [isDarkMode]);
   
-
+  useEffect(() => {
+    async function fetchSavedHoldings() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+  
+      const { data, error } = await supabase
+        .from('scenario_holdings')
+        .select('ticker, quantity')
+        .eq('user_id', user.id);
+  
+      if (data) {
+        const formatted = data.map((row: any) => ({
+          ticker: row.ticker,
+          quantity: row.quantity
+        }));
+        setHoldingsTable(formatted.length > 0 ? formatted : [{ ticker: 'TSLA', quantity: 10 }]);
+      }
+    }
+  
+    fetchSavedHoldings();
+  }, []);
+  
   const toggleTheme = () => setIsDarkMode((prev) => !prev);
 
   
@@ -288,6 +311,23 @@ export default function ScenarioSim() {
   const handleAnalyze = async () => {
     const symbols = holdingsTable.map((h) => h.ticker.toUpperCase());
     const qtyArray = holdingsTable.map((h) => h.quantity);
+    // Save holdings to Supabase
+const { data: { user } } = await supabase.auth.getUser();
+if (user) {
+  await supabase
+    .from('scenario_holdings')
+    .delete()
+    .eq('user_id', user.id);
+
+  const inserts = holdingsTable.map(h => ({
+    user_id: user.id,
+    ticker: h.ticker.toUpperCase(),
+    quantity: h.quantity
+  }));
+
+  await supabase.from('scenario_holdings').insert(inserts);
+}
+
 
     const fetchHistory = async (symbol: string): Promise<number[]> => {
       const res = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${process.env.REACT_APP_ALPHA_KEY}`);
@@ -299,17 +339,30 @@ export default function ScenarioSim() {
     const fetchGlobalQuote = async (symbol: string) => {
       const res = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${process.env.REACT_APP_ALPHA_KEY}`);
       const data = await res.json();
+    
       const quote = data['Global Quote'];
+      if (!quote || !quote['05. price']) {
+        console.warn(`No Global Quote for ${symbol}:`, data);
+        return {
+          price: 0,
+          open: 0,
+          high: 0,
+          low: 0,
+          prevClose: 0,
+          name: symbol
+        };
+      }
+    
       return {
         price: parseFloat(quote['05. price'] || '0'),
         open: parseFloat(quote['02. open'] || '0'),
         high: parseFloat(quote['03. high'] || '0'),
         low: parseFloat(quote['04. low'] || '0'),
         prevClose: parseFloat(quote['08. previous close'] || '0'),
-        name: quote['01. symbol'] || 'N/A'
+        name: quote['01. symbol'] || symbol
       };
     };
-
+    
     const fetchSentiment = async (symbol: string): Promise<string[]> => {
       const fromDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const res = await fetch(`https://newsapi.org/v2/everything?q=${symbol}&from=${fromDate}&sortBy=publishedAt&pageSize=5&language=en&apiKey=${process.env.REACT_APP_NEWS_KEY}`);

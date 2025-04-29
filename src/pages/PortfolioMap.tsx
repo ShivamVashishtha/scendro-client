@@ -84,7 +84,10 @@ export default function PortfolioMap() {
       const quoteRes = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${alphaKey}`);
       const quoteData = await quoteRes.json();
       const q = quoteData['Global Quote'];
-
+      if (!q || !q['05. price']) {
+        console.warn(`No quote data for ${symbol}`, quoteData);
+        return; // 💥 exit early if data missing
+      }
       const historyRes = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${alphaKey}`);
       const historyJson = await historyRes.json();
       const historyObj = historyJson['Time Series (Daily)'];
