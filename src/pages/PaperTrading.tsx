@@ -12,10 +12,8 @@ import {
   loadPaperTrades
 } from '../supabaseDatabase';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL!;
 
-const BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://scendro-backend.onrender.com'
-  : '';
 
 
 type Holding = {
@@ -102,7 +100,7 @@ const { queuedOrders, setQueuedOrders } = useTrading();
       const prices: { [key: string]: number } = {};
       for (const h of holdings) {
         try {
-          const res = await fetch(`${BASE_URL}/api/price?symbol=${h.symbol}`);
+          const res = await fetch(`${API_BASE_URL}/api/price?symbol=${h.symbol}`);
 
 
           const data = await res.json();
@@ -181,7 +179,7 @@ useEffect(() => {
       }
   
       try {
-        const res = await fetch(`${BASE_URL}/api/price?symbol=${symbol}`);
+        const res = await fetch(`${API_BASE_URL}/api/price?symbol=${symbol}`);
         const data = await res.json();
         if (data.price) {
           setMarketPrice(data.price);
@@ -213,7 +211,7 @@ useEffect(() => {
     }
   
     try {
-      const aiRes = await fetch(`${BASE_URL}/api/ai-stock-insight?symbol=${symbol}`);
+      const aiRes = await fetch(`${API_BASE_URL}/api/ai-stock-insight?symbol=${symbol}`);
       const aiData = await aiRes.json();
       if (!aiData.error) {
         setAiInsight(aiData.ai_analysis);

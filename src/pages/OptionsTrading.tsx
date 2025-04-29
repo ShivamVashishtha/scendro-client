@@ -23,6 +23,9 @@ export default function OptionsTrading() {
   const [optionType, setOptionType] = useState<'CALL' | 'PUT'>('CALL');
   const [currentPrice, setCurrentPrice] = useState<number | undefined>();
   const [optionInsight, setOptionInsight] = useState<string | null>(null);
+  const [loadingInsight, setLoadingInsight] = useState(false);
+const [errorInsight, setErrorInsight] = useState<string | null>(null);
+
 
   const navigate = useNavigate();
   const { user } = useAuth(); // 🔵 Supabase user
@@ -155,20 +158,29 @@ export default function OptionsTrading() {
       setOptionInsight(null);
       return;
     }
-
+  
+    setLoadingInsight(true);
+    setErrorInsight(null);
+  
     try {
       const res = await fetch(`${API_BASE_URL}/api/ai-option-insight?symbol=${symbol}&strike=${strike}&option_type=${optionType}&current_price=${currentPrice}`);
+      if (!res.ok) throw new Error('Failed to fetch AI Insight');
       const data = await res.json();
-      if (!data.error) {
+      if (!data.error && data.ai_analysis) {
         setOptionInsight(data.ai_analysis);
       } else {
         setOptionInsight(null);
+        setErrorInsight('No insight available for this option.');
       }
     } catch (err) {
       console.error('Error fetching option AI insight:', err);
       setOptionInsight(null);
+      setErrorInsight('⚠️ Failed to generate AI Insight. Try again.');
+    } finally {
+      setLoadingInsight(false);
     }
   };
+  
 
   useEffect(() => {
     if (!symbol.trim()) {
@@ -257,20 +269,30 @@ export default function OptionsTrading() {
         {/* 📊 AI Insight Button inside Side Panel */}
         {symbol && strike > 0 && (
           <div className="bg-gray-900 p-4 rounded mb-6 shadow mt-6">
-            <h2 className="text-xl mb-4">🧠 AI Option Insight</h2>
-            <button
-              onClick={generateOptionInsight}
-              className="bg-blue-500 hover:bg-blue-600 text-black font-semibold px-4 py-2 rounded"
-            >
-              Generate AI Insight
-            </button>
+  <h2 className="text-xl mb-4">🧠 AI Option Insight</h2>
+  <button
+    onClick={generateOptionInsight}
+    disabled={loadingInsight}
+    className="bg-blue-500 hover:bg-blue-600 text-black font-semibold px-4 py-2 rounded disabled:bg-gray-600 disabled:cursor-not-allowed"
+  >
+    {loadingInsight ? 'Generating...' : 'Generate AI Insight'}
+  </button>
 
-            {optionInsight && (
-              <div className="mt-4 p-4 bg-gray-700 rounded">
-                <p className="text-gray-300 whitespace-pre-line">{optionInsight}</p>
-              </div>
-            )}
-          </div>
+  {loadingInsight && (
+    <div className="mt-4 text-gray-400">🔄 Fetching analysis...</div>
+  )}
+
+  {errorInsight && (
+    <div className="mt-4 text-red-400">{errorInsight}</div>
+  )}
+
+  {optionInsight && (
+    <div className="mt-4 p-4 bg-gray-700 rounded">
+      <p className="text-gray-300 whitespace-pre-line">{optionInsight}</p>
+    </div>
+  )}
+</div>
+
         )}
 
         <OptionsProfitChart
