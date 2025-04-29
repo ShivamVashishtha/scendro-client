@@ -37,7 +37,7 @@ export default function OptionsChain({ symbol, onSelect, setCurrentPrice }: Prop
   useEffect(() => {
     if (!symbol) return;
 
-    fetch(`http://localhost:5000/api/options/dates?symbol=${symbol}`)
+    fetch(`/api/options/dates?symbol=${symbol}`)
       .then(res => res.json())
       .then(data => setExpirations(data.expirations || []))
       .catch(err => {
@@ -54,7 +54,7 @@ export default function OptionsChain({ symbol, onSelect, setCurrentPrice }: Prop
   }, [selectedDate]);
 
   const fetchPrice = () => {
-    fetch(`http://localhost:5000/api/price?symbol=${symbol}`)
+    fetch(`/api/price?symbol=${symbol}`)
       .then(async (res) => {
         const json = await res.json();
         if (!json || typeof json.price !== 'number') {
@@ -85,7 +85,7 @@ export default function OptionsChain({ symbol, onSelect, setCurrentPrice }: Prop
   const fetchOptionsChain = () => {
     if (!selectedDate) return;
 
-    fetch(`http://localhost:5000/api/options/chain?symbol=${symbol}&expiry=${selectedDate}`)
+    fetch(`/api/options/chain?symbol=${symbol}&expiry=${selectedDate}`)
       .then((res) => res.json())
       .then((data) => {
         if (!data || !Array.isArray(data.calls) || !Array.isArray(data.puts)) {

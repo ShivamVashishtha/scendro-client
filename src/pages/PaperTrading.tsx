@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import StockChart from '../components/StockChart';
 import { useNavigate } from 'react-router-dom';
 import { useTrading } from '../context/TradingContext';
+import type { QueuedOptionTrade, OptionTrade } from '../context/TradingContext';
+// 🔵 New: Supabase Imports
 import { supabase } from '../supabaseClient';
 import {
   saveHolding,
@@ -8,10 +11,12 @@ import {
   loadHoldings,
   loadPaperTrades
 } from '../supabaseDatabase';
-import type { QueuedOptionTrade, OptionTrade } from '../context/TradingContext';
-import StockChart from '../components/StockChart';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL!;
+
+const BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'https://scendro-backend.onrender.com'
+  : '';
+
 
 type Holding = {
   symbol: string;
@@ -34,33 +39,49 @@ type QueuedTrade = {
   price: number;
 };
 
-export default function PaperTrading() {
-  const { isSetupComplete, setIsSetupComplete } = useTrading();
-  const [startingBalance, setStartingBalance] = useState(10000);
-  const [symbol, setSymbol] = useState('');
-  const [quantity, setQuantity] = useState(0);
-  const [limitPrice, setLimitPrice] = useState(0);
-  const [orderType, setOrderType] = useState('MARKET_BUY');
-  const [marketPrice, setMarketPrice] = useState(0);
-  const [user, setUser] = useState<any>(null);
+  export default function PaperTrading() {
+    const { isSetupComplete, setIsSetupComplete } = useTrading();
+    const [startingBalance, setStartingBalance] = useState(10000);
+    const [symbol, setSymbol] = useState('');
+    const [quantity, setQuantity] = useState(0);
+    const [limitPrice, setLimitPrice] = useState(0);
+    const [orderType, setOrderType] = useState('MARKET_BUY');
+    const [marketPrice, setMarketPrice] = useState(0);
 
-  const [openPLShares, setOpenPLShares] = useState(0);
-  const [openPLOptions, setOpenPLOptions] = useState(0);
-  const [realizedPLShares, setRealizedPLShares] = useState(0);
-  const [realizedPLOptions, setRealizedPLOptions] = useState(0);
-  const [displayedPLType, setDisplayedPLType] = useState<'total' | 'shares' | 'options'>('total');
-  const [pricesBySymbol, setPricesBySymbol] = useState<{ [key: string]: number }>({});
+    const [openPLShares, setOpenPLShares] = useState(0);
+    const [openPLOptions, setOpenPLOptions] = useState(0);
+    const [realizedPLShares, setRealizedPLShares] = useState(0);
+    const [realizedPLOptions, setRealizedPLOptions] = useState(0);
+    const [displayedPLType, setDisplayedPLType] = useState<'total' | 'shares' | 'options'>('total');
+    const [pricesBySymbol, setPricesBySymbol] = useState<{ [key: string]: number }>({});
 
-  const {
-    queuedOrders, setQueuedOrders,
-    balance, setBalance,
-    holdings, setHoldings,
-    trades, setTrades,
-    optionTrades, setOptionTrades,
-    queuedOptionTrades, setQueuedOptionTrades
-  } = useTrading();
+    // ✅ AI Insight is now a simple string
+    const [aiInsight, setAiInsight] = useState<string | null>(null);
+    // 🔵 New: Supabase User
+    const [user, setUser] = useState<any>(null);
+
+
+
+
+const { queuedOrders, setQueuedOrders } = useTrading();
+
 
   const navigate = useNavigate();
+
+  // ✅ GLOBAL STATE from TradingContext
+  const {
+    balance,
+    setBalance,
+    holdings,
+    setHoldings,
+    trades,
+    setTrades,
+    optionTrades,
+    setOptionTrades,
+    queuedOptionTrades,
+    setQueuedOptionTrades,
+  } = useTrading();
+
   const alphaKey = process.env.REACT_APP_ALPHA_KEY!;
 
   const isMarketOpen = () => {
@@ -69,66 +90,21 @@ export default function PaperTrading() {
     const hours = now.getHours();
     const minutes = now.getMinutes();
     return (
-      day >= 1 && day <= 5 &&
+      day >= 1 &&
+      day <= 5 &&
       (hours > 9 || (hours === 9 && minutes >= 30)) &&
       (hours < 16 || (hours === 16 && minutes === 0))
     );
   };
 
-  // Fetch logged-in user
-  useEffect(() => {
-    async function fetchUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    }
-    fetchUser();
-  }, []);
-
-  // Load holdings and trades
-  useEffect(() => {
-    if (!user) return;
-    async function loadUserData() {
-      const { data: holdingsData } = await loadHoldings(user.id);
-      const { data: tradesData } = await loadPaperTrades(user.id);
-
-      if (holdingsData) {
-        setHoldings(holdingsData.map((h: any) => ({
-          symbol: h.symbol,
-          quantity: h.quantity,
-          avgPrice: h.avg_price,
-        })));
-      }
-
-      if (tradesData) {
-        const executed = tradesData.filter((t: any) => t.status === 'executed');
-        const queued = tradesData.filter((t: any) => t.status === 'queued');
-
-        setTrades(executed.map((t: any) => ({
-          type: t.order_type,
-          symbol: t.ticker,
-          quantity: t.quantity,
-          price: t.price,
-          realizedPL: 0,
-        })));
-
-        setQueuedOrders(queued.map((t: any) => ({
-          type: t.order_type,
-          symbol: t.ticker,
-          quantity: t.quantity,
-          price: t.price,
-        })));
-      }
-    }
-    loadUserData();
-  }, [user]);
-
-  // Fetch current prices
   useEffect(() => {
     const fetchPrices = async () => {
       const prices: { [key: string]: number } = {};
       for (const h of holdings) {
         try {
-          const res = await fetch(`${API_BASE_URL}/api/price?symbol=${h.symbol}`);
+          const res = await fetch(`${BASE_URL}/api/price?symbol=${h.symbol}`);
+
+
           const data = await res.json();
           prices[h.symbol] = data.price;
         } catch (err) {
@@ -137,45 +113,160 @@ export default function PaperTrading() {
       }
       setPricesBySymbol(prices);
     };
+  
     fetchPrices();
     const interval = setInterval(fetchPrices, 30000);
     return () => clearInterval(interval);
   }, [holdings]);
 
+  // 🔵 New: Fetch Logged-in User from Supabase
+useEffect(() => {
+  async function fetchUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+  }
+  fetchUser();
+}, []);
+
+// 🔵 New: Load Holdings and Trades from Supabase
+useEffect(() => {
+  if (!user) return;
+
+  async function loadUserData() {
+    const { data: holdingsData } = await loadHoldings(user.id);
+    const { data: tradesData } = await loadPaperTrades(user.id);
+
+    if (holdingsData) {
+      setHoldings(holdingsData.map((h: any) => ({
+        symbol: h.symbol,
+        quantity: h.quantity,
+        avgPrice: h.avg_price,
+      })));
+    }
+
+    if (tradesData) {
+      const executed = tradesData.filter((t: any) => t.status === 'executed');
+      const queued = tradesData.filter((t: any) => t.status === 'queued');
+
+      setTrades(executed.map((t: any) => ({
+        type: t.order_type,
+        symbol: t.ticker,
+        quantity: t.quantity,
+        price: t.price,
+        realizedPL: 0,
+      })));
+
+      setQueuedOrders(queued.map((t: any) => ({
+        type: t.order_type,
+        symbol: t.ticker,
+        quantity: t.quantity,
+        price: t.price,
+      })));
+    }
+  }
+  loadUserData();
+}, [user]);
+
+
+  
+
   useEffect(() => {
+    let interval: NodeJS.Timeout;
+  
     const fetchPrice = async () => {
+      if (!symbol || symbol.trim() === '') {
+        setMarketPrice(0);
+        setAiInsight(null);
+        return;
+      }
+  
       try {
-        const res = await fetch(`${API_BASE_URL}/api/price?symbol=${symbol}`);
+        const res = await fetch(`${BASE_URL}/api/price?symbol=${symbol}`);
         const data = await res.json();
-        if (data.price) setMarketPrice(data.price);
+        if (data.price) {
+          setMarketPrice(data.price);
+        }
       } catch (err) {
-        console.error('Error fetching price:', err);
+        console.error("Error fetching price:", err);
       }
     };
-    fetchPrice();
-    const interval = setInterval(fetchPrice, 15000);
-    return () => clearInterval(interval);
+  
+    if (symbol && symbol.trim() !== '') {
+      fetchPrice();
+      interval = setInterval(fetchPrice, 15000);
+    } else {
+      setMarketPrice(0);
+      setAiInsight(null);
+    }
+  
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [symbol]);
+   // <- ✅ this [symbol] is 100% needed
+    
+
+  const generateAiInsight = async () => {
+    if (!symbol || symbol.trim() === '') {
+      setAiInsight(null);
+      return;
+    }
+  
+    try {
+      const aiRes = await fetch(`${BASE_URL}/api/ai-stock-insight?symbol=${symbol}`);
+      const aiData = await aiRes.json();
+      if (!aiData.error) {
+        setAiInsight(aiData.ai_analysis);
+      } else {
+        setAiInsight(null);
+      }
+    } catch (err) {
+      console.error("Error fetching AI Insight:", err);
+      setAiInsight(null);
+    }
+  };
+  
+  
 
   useEffect(() => {
     let sharePL = 0;
     holdings.forEach((h) => {
       sharePL += (marketPrice - h.avgPrice) * h.quantity;
     });
+  
+    let optionPL = 0;
+    optionTrades.forEach((t) => {
+      const notionalNow = marketPrice * 100 * t.contracts;
+      const cost = t.price * 100 * t.contracts;
+  
+      if (t.type.startsWith('BUY')) {
+        optionPL += notionalNow - cost;  // Profit if price went up
+      } else {
+        optionPL += cost - notionalNow;  // Profit if price went down
+      }
+    });
+  
     setOpenPLShares(sharePL);
-  }, [marketPrice, holdings]);
+    setOpenPLOptions(optionPL);
+  }, [marketPrice, holdings, optionTrades]);
+  
 
   useEffect(() => {
     if (!isMarketOpen() || queuedOrders.length === 0) return;
+  
     queuedOrders.forEach(async (order) => {
       if (order.type === 'BUY') await handleBuy(order.symbol, order.quantity, true, order.price);
       else await handleSell(order.symbol, order.quantity, true, order.price);
+  
+      // 🔵 Save executed trade to Supabase
       if (user) {
         await savePaperTrade(user.id, order.symbol, order.quantity, order.price, order.type, 'executed');
       }
     });
+  
     setQueuedOrders([]);
   }, [marketPrice]);
+  
 
   const handleBuy = async (
     customSymbol: string = symbol,
@@ -190,28 +281,35 @@ export default function PaperTrading() {
       alert('Not enough balance!');
       return;
     }
-
+  
     const existing = holdings.find((h) => h.symbol === customSymbol);
     let updatedHoldings;
+  
     if (existing) {
       const totalQty = existing.quantity + customQty;
-      const newAvg = (existing.avgPrice * existing.quantity + price * customQty) / totalQty;
+      const newAvg =
+        (existing.avgPrice * existing.quantity + price * customQty) / totalQty;
       updatedHoldings = holdings.map((h) =>
         h.symbol === customSymbol ? { ...h, quantity: totalQty, avgPrice: newAvg } : h
       );
     } else {
       updatedHoldings = [...holdings, { symbol: customSymbol, quantity: customQty, avgPrice: price }];
     }
+  
     setHoldings(updatedHoldings);
     setBalance((b) => b - cost);
     setTrades((t) => [...t, { type: 'BUY', symbol: customSymbol, quantity: customQty, price, realizedPL: 0 }]);
-
+  
+    // 🔵 Supabase save if not from queued order
     if (!fromQueue && user) {
-      await saveHolding(user.id, customSymbol, customQty, price);
-      await savePaperTrade(user.id, customSymbol, customQty, price, 'BUY', 'executed');
+      const finalHolding = updatedHoldings.find(h => h.symbol === customSymbol);
+      if (finalHolding) {
+        await saveHolding(user.id, customSymbol, finalHolding.quantity, finalHolding.avgPrice);
+        await savePaperTrade(user.id, customSymbol, customQty, price, 'BUY', 'executed');
+      }
     }
-    if (!fromQueue) setQuantity(0);
   };
+  
 
   const handleSell = async (
     customSymbol: string = symbol,
@@ -226,129 +324,168 @@ export default function PaperTrading() {
       alert('Not enough shares!');
       return;
     }
-
+  
     const proceeds = customQty * price;
     const pl = (price - existing.avgPrice) * customQty;
-
+  
     const updatedHoldings =
       existing.quantity === customQty
         ? holdings.filter((h) => h.symbol !== customSymbol)
         : holdings.map((h) =>
             h.symbol === customSymbol ? { ...h, quantity: h.quantity - customQty } : h
           );
-
+  
     setHoldings(updatedHoldings);
     setBalance((b) => b + proceeds);
     setRealizedPLShares((p) => p + pl);
     setTrades((t) => [...t, { type: 'SELL', symbol: customSymbol, quantity: customQty, price, realizedPL: pl }]);
-
+  
+    // 🔵 Supabase save if not from queued order
     if (!fromQueue && user) {
-      await saveHolding(user.id, customSymbol, existing.quantity - customQty, existing.avgPrice);
+      const remainingHolding = updatedHoldings.find(h => h.symbol === customSymbol);
+      if (remainingHolding) {
+        await saveHolding(user.id, customSymbol, remainingHolding.quantity, remainingHolding.avgPrice);
+      } else {
+        // If no more shares left after selling, remove from database
+        await supabase
+          .from('holdings')  // Make sure your table name matches here!
+          .delete()
+          .match({ user_id: user.id, symbol: customSymbol });
+      }
       await savePaperTrade(user.id, customSymbol, customQty, price, 'SELL', 'executed');
     }
-    if (!fromQueue) setQuantity(0);
   };
+  
 
   const handleSubmit = async () => {
     const upperType = orderType.toUpperCase();
     const isLimit = upperType.includes('LIMIT');
     const isBuy = upperType.includes('BUY');
     const price = isLimit ? limitPrice : marketPrice;
-
+  
     if (price <= 0 || quantity <= 0) {
       alert('Invalid price or quantity.');
       return;
     }
+  
     if (!symbol) {
       alert('Please enter a symbol.');
       return;
     }
-
+  
+    const existing = holdings.find((h) => h.symbol === symbol);
+  
+    if (!isBuy && (!existing || existing.quantity < quantity)) {
+      alert('Not enough shares to sell!');
+      return;
+    }
+  
+    const orderCost = price * quantity;
+  
+    const totalQueuedBuyCost = queuedOrders
+      .filter((o) => o.type === 'BUY')
+      .reduce((sum, o) => sum + o.price * o.quantity, 0);
+  
+    const availableBalance = balance - totalQueuedBuyCost;
+  
+    if (isBuy && isLimit && orderCost > availableBalance) {
+      alert(`Not enough buying power to queue this order. You need $${orderCost.toFixed(2)}, but only have $${availableBalance.toFixed(2)} available.`);
+      return;
+    }
+  
+    if (isBuy && !isLimit && orderCost > availableBalance) {
+      alert(`Not enough buying power to execute this order. You need $${orderCost.toFixed(2)}, but only have $${availableBalance.toFixed(2)} available.`);
+      return;
+    }
+  
     if (isMarketOpen() && !isLimit) {
-      isBuy ? await handleBuy(symbol, quantity) : await handleSell(symbol, quantity);
+      isBuy ? handleBuy(symbol, quantity) : handleSell(symbol, quantity);
     } else {
+      // 🔵 Queuing the order
       alert('Order has been queued.');
-      setQueuedOrders((q) => [...q, { type: isBuy ? 'BUY' : 'SELL', symbol, quantity, price }]);
+      setQueuedOrders((q) => [
+        ...q,
+        {
+          type: isBuy ? 'BUY' : 'SELL',
+          symbol,
+          quantity,
+          price,
+        },
+      ]);
+    
+      // 🔵 Save queued order to Supabase
       if (user) {
         await savePaperTrade(user.id, symbol, quantity, price, isBuy ? 'BUY' : 'SELL', 'queued');
       }
+    
+      setQuantity(0);
     }
+    
   };
 
+  useEffect(() => {
+    if (!isMarketOpen() || queuedOptionTrades.length === 0) return;
+  
+    const executed: OptionTrade[] = [];
+  
+    queuedOptionTrades.forEach((trade) => {
+      const { type, symbol, contracts, price } = trade;
+  
+      if (type.startsWith('BUY')) {
+        const cost = price * contracts * 100;
+        if (balance >= cost) {
+          setBalance((b) => b - cost);
+          executed.push({ ...trade, realizedPL: 0 });
+        }
+      } else {
+        // For sells, add the premium as credit
+        const credit = price * contracts * 100;
+        setBalance((b) => b + credit);
+        executed.push({ ...trade, realizedPL: 0 });
+      }
+    });
+  
+    setOptionTrades((prev) => [...prev, ...executed]);
+    setQueuedOptionTrades([]); // clear after execution
+  }, [marketPrice]);
+  
+  
+  
+
+  // Setup screen for starting balance
   if (!isSetupComplete) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6 flex justify-center items-center">
-        <div className="bg-gray-800 p-6 rounded shadow w-full max-w-md">
-          <h1 className="text-3xl font-bold mb-6">⚙️ Setup Simulation</h1>
+      <div className="min-h-screen bg-gray-900 text-white p-6">
+        <h1 className="text-3xl font-bold mb-6">⚙️ Setup Your Simulation</h1>
+        <div className="bg-gray-800 p-6 rounded shadow w-full max-w-md mx-auto">
+          <label className="block mb-2 text-sm">Starting Balance ($):</label>
           <input
             type="number"
             value={startingBalance}
             onChange={(e) => setStartingBalance(parseFloat(e.target.value))}
-            className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
-            placeholder="Starting Balance ($)"
+            className="bg-gray-700 text-white px-3 py-2 rounded w-full mb-4"
           />
           <button
             onClick={() => {
               setBalance(startingBalance);
               setIsSetupComplete(true);
             }}
-            className="w-full py-2 bg-green-500 hover:bg-green-600 text-black rounded font-semibold"
+            className="bg-green-500 px-4 py-2 rounded text-black font-semibold hover:bg-green-600 w-full"
           >
-            Start
+            Start Simulation
           </button>
         </div>
       </div>
     );
   }
 
-  const cancelQueuedOrder = async (index: number) => {
-    const prevOrders = [...queuedOrders];
-    const orderToDelete = prevOrders[index];
-  
-    if (!orderToDelete) return;
-  
+  const cancelQueuedOrder = (index: number) => {
     setQueuedOrders((prev) => prev.filter((_, i) => i !== index));
-  
-    // Delete from Supabase if saved there
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase
-        .from('paper_trades')
-        .delete()
-        .match({
-          user_id: user.id,
-          ticker: orderToDelete.symbol,
-          quantity: orderToDelete.quantity,
-          price: orderToDelete.price,
-          order_type: orderToDelete.type,
-          status: 'queued',
-        });
-    }
   };
   
-  const cancelQueuedOptionTrade = async (index: number) => {
-    const prevOptionTrades = [...queuedOptionTrades];
-    const optionTradeToDelete = prevOptionTrades[index];
-  
-    if (!optionTradeToDelete) return;
-  
+  const cancelQueuedOptionTrade = (index: number) => {
     setQueuedOptionTrades((prev) => prev.filter((_, i) => i !== index));
-  
-    // Delete from Supabase if saved there (if you also store options in database)
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase
-        .from('options_trades') // Adjust if you're saving options differently
-        .delete()
-        .match({
-          user_id: user.id,
-          option_symbol: optionTradeToDelete.symbol,
-          strike_price: optionTradeToDelete.price,
-          quantity: optionTradeToDelete.contracts,
-        });
-    }
   };
-  
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -481,8 +618,30 @@ export default function PaperTrading() {
       <div className="bg-gray-800 p-4 rounded mb-6 shadow">
         {symbol && marketPrice > 0 && (
           <StockChart symbol={symbol} apiKey={alphaKey} />
+
         )}
       </div>
+
+      {/* AI Insight Button + Result */}
+{symbol && symbol.trim() !== '' && (
+  <div className="bg-gray-800 p-4 rounded mb-6 shadow mt-6">
+    <h2 className="text-xl mb-4">🧠 AI Stock Insight</h2>
+    <button
+      onClick={generateAiInsight}
+      className="bg-blue-500 hover:bg-blue-600 text-black font-semibold px-4 py-2 rounded"
+    >
+      Generate AI Insight
+    </button>
+
+    {aiInsight && (
+      <div className="mt-4 p-4 bg-gray-700 rounded">
+        <p className="text-gray-300 whitespace-pre-line">{aiInsight}</p>
+      </div>
+    )}
+  </div>
+)}
+
+
 
       {/* Holdings */}
       <div className="bg-gray-800 p-4 rounded mb-6 shadow">

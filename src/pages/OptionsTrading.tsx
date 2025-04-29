@@ -1,35 +1,46 @@
-// eslint-disable-next-line
-import React, { useState, useEffect } from "react";
-import TradeSummary from "../components/TradeSummary";
-import OptionsChain from "../components/OptionsChain";
-import OptionsProfitChart from "../components/OptionsProfitChart";
-import { useTrading } from "../context/TradingContext";
-import { useAuth } from "../context/AuthContext";
-// eslint-disable-next-line
-import { saveOptionTrade, loadOptionTrades } from "../supabaseDatabase";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabaseClient"; // (already imported above)
+import React, { useState, useEffect } from 'react';
+import TradeSummary from '../components/TradeSummary';
+import OptionsChain from '../components/OptionsChain';
+import OptionsProfitChart from '../components/OptionsProfitChart';
+import { useTrading } from '../context/TradingContext';
+import { useNavigate } from 'react-router-dom';
+// 🔵 New: Supabase Imports
+import { useAuth } from '../context/AuthContext';
+import { saveOptionTrade, loadOptionTrades } from '../supabaseDatabase';
+import { supabase } from '../supabaseClient';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL!;
+const BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'https://scendro-backend.onrender.com'
+  : '';
 
 export default function OptionsTrading() {
-  const { balance, setBalance, holdings, optionTrades, setOptionTrades, queuedOptionTrades, setQueuedOptionTrades } = useTrading();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  const [symbol, setSymbol] = useState("");
+  const [symbol, setSymbol] = useState('');
   const [strike, setStrike] = useState(0);
   const [premium, setPremium] = useState(0);
-  const [expiration, setExpiration] = useState("");
+  const [expiration, setExpiration] = useState('');
   const [contracts, setContracts] = useState(1);
-  const [orderType, setOrderType] = useState<"MARKET_BUY" | "MARKET_SELL" | "LIMIT_BUY" | "LIMIT_SELL">("MARKET_BUY");
+  const [orderType, setOrderType] = useState<'MARKET_BUY' | 'MARKET_SELL' | 'LIMIT_BUY' | 'LIMIT_SELL'>('MARKET_BUY');
   const [limitPrice, setLimitPrice] = useState(0);
-  const [optionType, setOptionType] = useState<"CALL" | "PUT">("CALL");
+  const [optionType, setOptionType] = useState<'CALL' | 'PUT'>('CALL');
   const [currentPrice, setCurrentPrice] = useState<number | undefined>();
+  const [optionInsight, setOptionInsight] = useState<string | null>(null);
 
-  const isBuy = orderType.includes("BUY");
-  const actualPremium = orderType.includes("LIMIT") ? limitPrice : premium;
-  const breakeven = optionType === "CALL"
+  const navigate = useNavigate();
+  const { user } = useAuth(); // 🔵 Supabase user
+
+  const {
+    balance,
+    setBalance,
+    holdings,
+    optionTrades,
+    setOptionTrades,
+    queuedOptionTrades,
+    setQueuedOptionTrades,
+  } = useTrading();
+
+  const isBuy = orderType.includes('BUY');
+  const actualPremium = orderType.includes('LIMIT') ? limitPrice : premium;
+  const breakeven = optionType === 'CALL'
     ? strike + actualPremium
     : strike - actualPremium;
 
@@ -41,7 +52,7 @@ export default function OptionsTrading() {
       const { data } = await loadOptionTrades(user.id);
       if (data) {
         setOptionTrades(data.map(d => ({
-          type: d.option_symbol.includes("C") ? "BUY_CALL" : "BUY_PUT",
+          type: d.option_symbol.includes('C') ? 'BUY_CALL' : 'BUY_PUT',
           symbol: d.option_symbol,
           contracts: d.quantity,
           price: d.price,
@@ -55,7 +66,7 @@ export default function OptionsTrading() {
 
   const handleSubmit = async () => {
     if (!symbol || !strike || !expiration || !premium || contracts <= 0) {
-      alert("Incomplete trade details");
+      alert('Incomplete trade details');
       return;
     }
 
@@ -63,57 +74,57 @@ export default function OptionsTrading() {
     const cost = price * contracts * 100;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/market-status`);
+      const res = await fetch(`${BASE_URL}/api/market-status`);
       const data = await res.json();
 
-      if (!res.ok || typeof data.isMarketOpen !== "boolean") {
-        throw new Error("Invalid response from market status endpoint");
+      if (!res.ok || typeof data.isMarketOpen !== 'boolean') {
+        throw new Error('Invalid response from market status endpoint');
       }
 
       const isMarketOpen = data.isMarketOpen;
-      const action = isBuy ? "BUY" : "SELL";
-      const type = optionType;
+      const action = isBuy ? 'BUY' : 'SELL';
 
-      if (action === "SELL" && type === "CALL") {
+      if (action === 'SELL' && optionType === 'CALL') {
         const holding = holdings.find((h) => h.symbol === symbol);
         if (!holding || holding.quantity < contracts * 100) {
-          alert("Not enough shares for a Covered Call");
+          alert('Not enough shares for a Covered Call');
           return;
         }
       }
 
-      if (action === "SELL" && type === "PUT") {
+      if (action === 'SELL' && optionType === 'PUT') {
         const requiredCash = strike * 100 * contracts;
         if (balance < requiredCash) {
-          alert("Not enough buying power for Cash-Secured Put");
+          alert('Not enough buying power for Cash-Secured Put');
           return;
         }
       }
 
-      const tradeType = `${action}_${type}` as "BUY_CALL" | "SELL_CALL" | "BUY_PUT" | "SELL_PUT";
+      const tradeType = `${action}_${optionType}` as 'BUY_CALL' | 'SELL_CALL' | 'BUY_PUT' | 'SELL_PUT';
       const trade = { type: tradeType, symbol, contracts, price, realizedPL: 0 };
 
-      if (isMarketOpen && orderType.includes("MARKET")) {
+      if (isMarketOpen && orderType.includes('MARKET')) {
         if (isBuy && cost > balance) {
-          alert("Not enough balance to buy this option");
+          alert('Not enough balance to buy this option');
           return;
         }
         if (isBuy) setBalance((b) => b - cost);
         else setBalance((b) => b + cost);
         setOptionTrades([...optionTrades, trade]);
 
+        // 🔵 Save to Supabase if user exists
         if (user) {
           await saveOptionTrade(user.id, symbol, strike, contracts, price);
         }
 
-        alert("✅ Trade executed!");
+        alert('✅ Trade executed!');
       } else {
         setQueuedOptionTrades((q) => [...q, trade]);
-        alert("⏳ Market closed — trade queued.");
+        alert('⏳ Market closed — trade queued.');
       }
     } catch (err) {
-      console.error("Failed to check market status:", err);
-      alert("⚠️ Could not determine if the market is open. Please try again.");
+      console.error('Failed to check market status:', err);
+      alert('⚠️ Could not determine if the market is open. Please try again.');
     }
   };
 
@@ -125,11 +136,11 @@ export default function OptionsTrading() {
   
     setQueuedOptionTrades((prev) => prev.filter((_, i) => i !== index));
   
-    // Delete from Supabase if saved
+    // 🔵 Delete from Supabase if saved
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase
-        .from('options_trades') // Make sure this is the correct table name
+        .from('options_trades')
         .delete()
         .match({
           user_id: user.id,
@@ -140,13 +151,40 @@ export default function OptionsTrading() {
     }
   };
 
+  const generateOptionInsight = async () => {
+    if (!symbol || strike <= 0 || !optionType || currentPrice === undefined) {
+      setOptionInsight(null);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/ai-option-insight?symbol=${symbol}&strike=${strike}&option_type=${optionType}&current_price=${currentPrice}`);
+      const data = await res.json();
+      if (!data.error) {
+        setOptionInsight(data.ai_analysis);
+      } else {
+        setOptionInsight(null);
+      }
+    } catch (err) {
+      console.error('Error fetching option AI insight:', err);
+      setOptionInsight(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!symbol.trim()) {
+      setOptionInsight(null);
+    }
+  }, [symbol]);
+
   return (
     <div className="flex flex-col md:flex-row h-screen text-white bg-gray-900">
+      {/* Left Panel */}
       <div className="w-full md:w-2/3 p-6 overflow-auto">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">📈 Options Chain</h1>
           <button
-            onClick={() => navigate("/paper-trading")}
+            onClick={() => navigate('/paper-trading')}
             className="bg-gray-700 text-white px-4 py-1 rounded hover:bg-gray-600"
           >
             ← Back to Paper Trading
@@ -155,21 +193,28 @@ export default function OptionsTrading() {
 
         <input
           value={symbol}
-          onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+          onChange={(e) => {
+            const newSymbol = e.target.value.toUpperCase();
+            setSymbol(newSymbol);
+            if (newSymbol.trim() === '') {
+              setOptionInsight(null);
+            }
+          }}
           className="bg-gray-800 text-white p-2 rounded w-full mb-2"
           placeholder="Enter symbol (e.g. AAPL)"
         />
 
+        {/* Order Type Buttons */}
         <div className="mb-4 flex flex-wrap gap-2 justify-start">
-          {["MARKET_BUY", "MARKET_SELL", "LIMIT_BUY", "LIMIT_SELL"].map((type) => (
+          {['MARKET_BUY', 'MARKET_SELL', 'LIMIT_BUY', 'LIMIT_SELL'].map((type) => (
             <button
               key={type}
               onClick={() => setOrderType(type as any)}
               className={`px-3 py-1 rounded text-sm font-semibold ${
-                orderType === type ? "bg-blue-600" : "bg-gray-700"
+                orderType === type ? 'bg-blue-600' : 'bg-gray-700'
               }`}
             >
-              {type.replace("_", " ")}
+              {type.replace('_', ' ')}
             </button>
           ))}
         </div>
@@ -186,10 +231,11 @@ export default function OptionsTrading() {
         />
       </div>
 
+      {/* Right Panel */}
       <div className="w-full md:w-1/3 p-6 bg-gray-800 border-l border-gray-700 overflow-auto">
         <TradeSummary
           symbol={symbol}
-          action={isBuy ? "BUY" : "SELL"}
+          action={isBuy ? 'BUY' : 'SELL'}
           type={optionType}
           contracts={contracts}
           premium={actualPremium}
@@ -209,16 +255,35 @@ export default function OptionsTrading() {
           />
         </div>
 
+        {/* 📊 AI Insight Button inside Side Panel */}
+        {symbol && strike > 0 && (
+          <div className="bg-gray-900 p-4 rounded mb-6 shadow mt-6">
+            <h2 className="text-xl mb-4">🧠 AI Option Insight</h2>
+            <button
+              onClick={generateOptionInsight}
+              className="bg-blue-500 hover:bg-blue-600 text-black font-semibold px-4 py-2 rounded"
+            >
+              Generate AI Insight
+            </button>
+
+            {optionInsight && (
+              <div className="mt-4 p-4 bg-gray-700 rounded">
+                <p className="text-gray-300 whitespace-pre-line">{optionInsight}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         <OptionsProfitChart
           strike={strike}
           premium={actualPremium}
           contracts={contracts}
           type={optionType}
-          action={isBuy ? "BUY" : "SELL"}
+          action={isBuy ? 'BUY' : 'SELL'}
           currentPrice={currentPrice}
         />
 
-        {orderType.includes("LIMIT") && (
+        {orderType.includes('LIMIT') && (
           <div className="mt-4">
             <label>Limit Price:</label>
             <input
@@ -239,6 +304,7 @@ export default function OptionsTrading() {
           Submit Trade
         </button>
 
+        {/* Queued Option Trades */}
         {queuedOptionTrades.length > 0 && (
           <div className="mt-6">
             <h3 className="text-lg font-semibold">Queued Orders</h3>
